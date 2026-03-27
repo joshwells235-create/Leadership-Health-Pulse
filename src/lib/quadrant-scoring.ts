@@ -28,7 +28,14 @@ export interface ResponseData {
   axis: "accountability" | "supportiveness";
 }
 
-const MIDPOINT = 3.0;
+// The threshold for Intentional Leadership.
+// Set at 3.8 (not 3.0) because:
+// 1. Self-assessment bias: most people rate themselves 3+ even when they're mediocre
+// 2. A 3/5 on "I address underperformance within days" means you often don't. That's not intentional.
+// 3. Intentional Leadership should mean something. It's the goal, not the default.
+// 4. This ensures the scatter plot actually differentiates managers rather than
+//    clustering everyone in the top-right quadrant.
+const MIDPOINT = 3.8;
 
 const QUADRANT_LABELS: Record<Quadrant, string> = {
   intentional: "Intentional Leadership",
