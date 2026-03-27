@@ -56,27 +56,18 @@ export default function ScatterPlot({
     return padding + (1 - (score - 1) / 4) * plotHeight;
   }
 
-  const midX = toPixelX(MIDPOINT);
-  const midY = toPixelY(MIDPOINT);
-
-  // Quadrant background rects need to be sized to the actual threshold position
-  const leftWidth = midX - padding;
-  const rightWidth = padding + plotWidth - midX;
-  const topHeight = midY - padding;
-  const bottomHeight = padding + plotHeight - midY;
+  // Visual crosshairs at the center (equal quadrants visually)
+  const visualMidX = padding + plotWidth / 2;
+  const visualMidY = padding + plotHeight / 2;
 
   return (
     <div className="relative inline-block">
       <svg width={width} height={height} className="overflow-visible">
-        {/* Quadrant backgrounds - sized to actual threshold */}
-        {/* Top right: Intentional */}
-        <rect x={midX} y={padding} width={rightWidth} height={topHeight} fill={QUADRANT_BG_COLORS.intentional} />
-        {/* Top left: Command & Control */}
-        <rect x={padding} y={padding} width={leftWidth} height={topHeight} fill={QUADRANT_BG_COLORS.command_control} />
-        {/* Bottom left: Absent */}
-        <rect x={padding} y={midY} width={leftWidth} height={bottomHeight} fill={QUADRANT_BG_COLORS.absent} />
-        {/* Bottom right: Overly Supportive */}
-        <rect x={midX} y={midY} width={rightWidth} height={bottomHeight} fill={QUADRANT_BG_COLORS.overly_supportive} />
+        {/* Quadrant backgrounds - equal visual quadrants */}
+        <rect x={visualMidX} y={padding} width={plotWidth / 2} height={plotHeight / 2} fill={QUADRANT_BG_COLORS.intentional} />
+        <rect x={padding} y={padding} width={plotWidth / 2} height={plotHeight / 2} fill={QUADRANT_BG_COLORS.command_control} />
+        <rect x={padding} y={visualMidY} width={plotWidth / 2} height={plotHeight / 2} fill={QUADRANT_BG_COLORS.absent} />
+        <rect x={visualMidX} y={visualMidY} width={plotWidth / 2} height={plotHeight / 2} fill={QUADRANT_BG_COLORS.overly_supportive} />
 
         {/* Border */}
         <rect
@@ -84,23 +75,23 @@ export default function ScatterPlot({
           fill="none" stroke="#101d51" strokeWidth="1" strokeOpacity="0.12" rx="4"
         />
 
-        {/* Crosshairs at threshold */}
-        <line x1={midX} y1={padding} x2={midX} y2={padding + plotHeight} stroke="#101d51" strokeWidth="1" strokeOpacity="0.12" />
-        <line x1={padding} y1={midY} x2={padding + plotWidth} y2={midY} stroke="#101d51" strokeWidth="1" strokeOpacity="0.12" />
+        {/* Crosshairs at visual center */}
+        <line x1={visualMidX} y1={padding} x2={visualMidX} y2={padding + plotHeight} stroke="#101d51" strokeWidth="1" strokeOpacity="0.12" />
+        <line x1={padding} y1={visualMidY} x2={padding + plotWidth} y2={visualMidY} stroke="#101d51" strokeWidth="1" strokeOpacity="0.12" />
 
         {/* Quadrant labels - centered in each quadrant region */}
         {showLabels && (
           <>
-            <text x={midX + rightWidth / 2} y={padding + topHeight / 2} textAnchor="middle" fill="#007efa" fontSize="11" fontWeight="600" opacity="0.5">
+            <text x={visualMidX + plotWidth / 4} y={padding + plotHeight / 4} textAnchor="middle" fill="#007efa" fontSize="11" fontWeight="600" opacity="0.5">
               Intentional
             </text>
-            <text x={padding + leftWidth / 2} y={padding + topHeight / 2} textAnchor="middle" fill="#F5A623" fontSize="10" fontWeight="600" opacity="0.5">
+            <text x={padding + plotWidth / 4} y={padding + plotHeight / 4} textAnchor="middle" fill="#F5A623" fontSize="10" fontWeight="600" opacity="0.5">
               Command &amp; Control
             </text>
-            <text x={padding + leftWidth / 2} y={midY + bottomHeight / 2} textAnchor="middle" fill="#EA0C67" fontSize="10" fontWeight="600" opacity="0.5">
+            <text x={padding + plotWidth / 4} y={visualMidY + plotHeight / 4} textAnchor="middle" fill="#EA0C67" fontSize="10" fontWeight="600" opacity="0.5">
               Absent
             </text>
-            <text x={midX + rightWidth / 2} y={midY + bottomHeight / 2} textAnchor="middle" fill="#F5A623" fontSize="10" fontWeight="600" opacity="0.5">
+            <text x={visualMidX + plotWidth / 4} y={visualMidY + plotHeight / 4} textAnchor="middle" fill="#F5A623" fontSize="10" fontWeight="600" opacity="0.5">
               Overly Supportive
             </text>
           </>
