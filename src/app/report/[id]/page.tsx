@@ -205,6 +205,7 @@ export default function ReportPage() {
   const [report, setReport] = useState<ReportData | null>(null);
   const [survey, setSurvey] = useState<SurveyData | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     async function generateAndLoad() {
@@ -328,8 +329,6 @@ export default function ReportPage() {
   // ============================================
   // RENDER: Report
   // ============================================
-  const [isDownloading, setIsDownloading] = useState(false);
-
   async function handleDownloadPDF() {
     setIsDownloading(true);
     try {
