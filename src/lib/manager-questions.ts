@@ -8,6 +8,8 @@ export type Axis = "accountability" | "supportiveness";
 export interface ManagerQuestion {
   text: string;
   axis: Axis;
+  reverse?: boolean; // If true, scoring is inverted (6 - rating). Used for
+  // questions phrased as common failure modes where agreeing = lower score.
 }
 
 export interface Elite5Dimension {
@@ -24,27 +26,28 @@ export const ELITE5_DIMENSIONS: Elite5Dimension[] = [
     description: "How you set direction and hold the line on expectations",
     questions: [
       {
-        // Accountability: Do you set hard targets or leave things vague?
-        text: "I set clear deadlines for my team and follow up when they're missed.",
+        // Accountability: "Team would say" reframe — forces outside-in perspective
+        text: "My team would say they always know exactly what's expected of them and by when.",
         axis: "accountability",
       },
       {
-        // Accountability: Do you track progress or trust it'll get done?
-        text: "When a goal is off track, I step in early rather than waiting to see if it corrects itself.",
+        // Accountability: Reverse-scored failure mode — easier to admit a mild version
+        text: "I sometimes discover a goal is off track later than I should have.",
         axis: "accountability",
+        reverse: true,
       },
       {
-        // Supportiveness: Do you help your team understand the bigger picture?
-        text: "I take time to connect each person's work to the team's larger purpose so they feel invested in the outcome.",
+        // Supportiveness: "Team would say" reframe
+        text: "My team would say they understand how their work connects to what the organization is trying to achieve.",
         axis: "supportiveness",
       },
       {
-        // Supportiveness: Do you help people navigate change or just announce it?
+        // Supportiveness: Behavioral anchor with scenario framing
         text: "When priorities shift, I sit down with my team to talk through what's changing and why, rather than just reassigning work.",
         axis: "supportiveness",
       },
       {
-        // Accountability: Do you hold people to the standard or let things slide?
+        // Accountability: Scenario-based forced choice framing
         text: "If someone's deliverable doesn't meet the standard, I send it back rather than fixing it myself.",
         axis: "accountability",
       },
@@ -56,29 +59,31 @@ export const ELITE5_DIMENSIONS: Elite5Dimension[] = [
     description: "How consistently and directly you develop your people through feedback",
     questions: [
       {
-        // Accountability: Is feedback scheduled or reactive?
-        text: "I have a regular cadence for giving each team member direct feedback on their performance.",
+        // Accountability: "Team would say" reframe — the team knows if feedback is regular
+        text: "My team members would say they receive consistent, scheduled feedback from me — not just when something goes wrong.",
         axis: "accountability",
       },
       {
-        // Accountability: Do you name the specific issue or dance around it?
-        text: "When something isn't working, I name the exact behavior that needs to change rather than hinting at it.",
+        // Accountability: Reverse-scored — most managers soften without realizing it
+        text: "I sometimes catch myself hinting at a problem rather than naming the specific behavior that needs to change.",
         axis: "accountability",
+        reverse: true,
       },
       {
-        // Supportiveness: Do you make it safe for people to be honest with you?
-        text: "My team members feel comfortable telling me when they disagree with a decision I've made.",
+        // Supportiveness: "Team would say" — they know if it's safe better than you do
+        text: "My team members would say they can push back on my decisions without it affecting how I treat them.",
         axis: "supportiveness",
       },
       {
-        // Supportiveness: Do you invest in growth or just correct mistakes?
+        // Supportiveness: Behavioral anchor
         text: "I spend as much time coaching my team on what they're doing well as I do on what needs to improve.",
         axis: "supportiveness",
       },
       {
-        // Accountability: Do you check if feedback actually changed anything?
-        text: "After giving feedback, I circle back to see whether the change actually happened.",
+        // Accountability: Reverse-scored — easy to forget to close the loop
+        text: "I've given feedback and then realized weeks later I never checked whether anything actually changed.",
         axis: "accountability",
+        reverse: true,
       },
     ],
   },
@@ -88,27 +93,29 @@ export const ELITE5_DIMENSIONS: Elite5Dimension[] = [
     description: "How present and engaged you are in the day-to-day work of your team",
     questions: [
       {
-        // Accountability: Are you on top of what's happening or flying blind?
-        text: "At any given moment, I could tell you where each of my direct reports stands on their most important work.",
+        // Accountability: Reverse-scored — honest version of "I know what's going on"
+        text: "I'm sometimes surprised to learn that a direct report has been stuck or struggling without my knowledge.",
         axis: "accountability",
+        reverse: true,
       },
       {
-        // Accountability: Do you intervene fast or let problems fester?
-        text: "When I see early signs of a problem, I address it that day rather than putting it off.",
+        // Accountability: Reverse-scored — most managers delay
+        text: "When I notice an early warning sign, I sometimes wait a few days to see if it resolves on its own before stepping in.",
         axis: "accountability",
+        reverse: true,
       },
       {
-        // Supportiveness: Are you accessible or behind a closed door?
+        // Supportiveness: "Team would say" — accessibility is felt by others, not self-assessed
         text: "My team would say I'm easy to reach and genuinely interested when they bring me a problem.",
         axis: "supportiveness",
       },
       {
-        // Supportiveness: Do you invest time in each person individually?
+        // Supportiveness: Behavioral anchor with specificity
         text: "I hold consistent one-on-ones with each direct report and rarely cancel or reschedule them.",
         axis: "supportiveness",
       },
       {
-        // Accountability: Do you have a system or wing it?
+        // Accountability: Behavioral anchor — system vs. reactive
         text: "I run my week with a consistent management routine rather than reacting to whatever comes up.",
         axis: "accountability",
       },
@@ -120,27 +127,28 @@ export const ELITE5_DIMENSIONS: Elite5Dimension[] = [
     description: "How you acknowledge effort and reinforce the behaviors you want to see",
     questions: [
       {
-        // Supportiveness: Do people feel seen by you?
+        // Supportiveness: "Team would say" — the team knows if they feel appreciated
         text: "My team members would say they feel genuinely appreciated for their work, not just their results.",
         axis: "supportiveness",
       },
       {
-        // Supportiveness: Do you tailor how you recognize people?
-        text: "I know what kind of recognition matters to each person on my team and I deliver it that way.",
+        // Supportiveness: Reverse-scored — most managers don't personalize
+        text: "If I'm honest, I probably recognize most people on my team in roughly the same way rather than tailoring it to each person.",
         axis: "supportiveness",
+        reverse: true,
       },
       {
-        // Accountability: Do you use recognition to reinforce standards?
+        // Accountability: Behavioral anchor — strategic recognition
         text: "When I recognize someone publicly, I tie it to a specific behavior or result I want the rest of the team to repeat.",
         axis: "accountability",
       },
       {
-        // Supportiveness: Do you acknowledge the grind or just the wins?
-        text: "I make a point to acknowledge effort and persistence, especially on work that doesn't have a visible finish line.",
+        // Supportiveness: "Team would say" — grind recognition
+        text: "My team would say I notice and acknowledge their effort on ongoing work, not just finished projects with visible outcomes.",
         axis: "supportiveness",
       },
       {
-        // Accountability: Are you intentional about what you celebrate?
+        // Accountability: Behavioral anchor — intentional about what gets celebrated
         text: "I'm deliberate about which wins I highlight because I know what gets recognized gets repeated.",
         axis: "accountability",
       },
@@ -152,29 +160,31 @@ export const ELITE5_DIMENSIONS: Elite5Dimension[] = [
     description: "Your willingness to address problems head-on and hold people to their commitments",
     questions: [
       {
-        // Accountability: Do you confront underperformance or avoid it?
-        text: "When someone on my team is consistently underperforming, I have the conversation within days, not weeks.",
+        // Accountability: Reverse-scored — easier to admit "sometimes" than deny "always"
+        text: "I've let a performance issue go on longer than I should have because I was hoping it would improve on its own.",
         axis: "accountability",
+        reverse: true,
       },
       {
-        // Accountability: Do you hold people to what they said they'd do?
+        // Accountability: Behavioral anchor
         text: "If someone commits to something and doesn't deliver, I call it out directly.",
         axis: "accountability",
       },
       {
-        // Accountability: Do you address tension or let it build?
+        // Accountability: Scenario-based
         text: "I'd rather have an uncomfortable ten-minute conversation today than let a problem grow for a month.",
         axis: "accountability",
       },
       {
-        // Supportiveness: Can you be direct without being destructive?
-        text: "Even in my toughest conversations, the other person walks away knowing I respect them and want them to succeed.",
+        // Supportiveness: "Team would say" — they know if respect survived the conversation
+        text: "My team would say that even after a tough conversation with me, they walk away feeling respected and supported.",
         axis: "supportiveness",
       },
       {
-        // Supportiveness: Do you follow through after a hard conversation?
-        text: "After a difficult conversation, I check in within the week to see how the person is doing and whether they need support.",
+        // Supportiveness: Reverse-scored — easy to forget follow-up
+        text: "After a difficult conversation, I sometimes get pulled into other things and don't check back in as soon as I should.",
         axis: "supportiveness",
+        reverse: true,
       },
     ],
   },

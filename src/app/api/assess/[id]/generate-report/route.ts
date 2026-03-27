@@ -50,13 +50,27 @@ export async function POST(
     return NextResponse.json({ error: "No responses found" }, { status: 400 });
   }
 
-  // Calculate scores
+  // Build a lookup for reverse-scored questions from the question definitions
+  const reverseMap = new Map<string, boolean>();
+  for (const dim of ELITE5_DIMENSIONS) {
+    dim.questions.forEach((q, i) => {
+      if (q.reverse) reverseMap.set(`${dim.key}:${i}`, true);
+    });
+  }
+
+  // Calculate scores (applying reverse scoring where needed)
   const responseData: ResponseData[] = responses.map((r) => ({
     rating: r.rating,
     axis: r.axis,
+    reverse: reverseMap.get(`${r.dimension}:${r.question_index}`) || false,
   }));
   const quadrantResult = calculateQuadrant(responseData);
-  const dimensionScores = getDimensionScores(responses);
+  const dimensionScores = getDimensionScores(
+    responses.map((r) => ({
+      ...r,
+      reverse: reverseMap.get(`${r.dimension}:${r.question_index}`) || false,
+    }))
+  );
   const gap = getGapToIntentional(quadrantResult);
 
   // Build data summary for AI

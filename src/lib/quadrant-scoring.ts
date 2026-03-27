@@ -26,6 +26,7 @@ export interface QuadrantResult {
 export interface ResponseData {
   rating: number;
   axis: "accountability" | "supportiveness";
+  reverse?: boolean; // If true, score is inverted (6 - rating)
 }
 
 // The threshold for Intentional Leadership.
@@ -56,6 +57,12 @@ const QUADRANT_LABELS_MANAGER: Record<Quadrant, string> = {
 };
 
 export function calculateQuadrant(responses: ResponseData[]): QuadrantResult {
+  // For reverse-scored questions, invert: a "5" (strongly agree with a
+  // failure-mode statement) becomes a 1 for scoring purposes.
+  function effectiveRating(r: ResponseData) {
+    return r.reverse ? 6 - r.rating : r.rating;
+  }
+
   const accountabilityResponses = responses.filter(
     (r) => r.axis === "accountability"
   );
@@ -65,13 +72,13 @@ export function calculateQuadrant(responses: ResponseData[]): QuadrantResult {
 
   const yScore =
     accountabilityResponses.length > 0
-      ? accountabilityResponses.reduce((sum, r) => sum + r.rating, 0) /
+      ? accountabilityResponses.reduce((sum, r) => sum + effectiveRating(r), 0) /
         accountabilityResponses.length
       : MIDPOINT;
 
   const xScore =
     supportivenessResponses.length > 0
-      ? supportivenessResponses.reduce((sum, r) => sum + r.rating, 0) /
+      ? supportivenessResponses.reduce((sum, r) => sum + effectiveRating(r), 0) /
         supportivenessResponses.length
       : MIDPOINT;
 
@@ -96,7 +103,7 @@ export function calculateQuadrant(responses: ResponseData[]): QuadrantResult {
 
 // Get dimension-level scores for detailed reporting
 export function getDimensionScores(
-  responses: { dimension: string; rating: number; axis: string }[]
+  responses: { dimension: string; rating: number; axis: string; reverse?: boolean }[]
 ) {
   const dimensions: Record<
     string,
@@ -104,6 +111,7 @@ export function getDimensionScores(
   > = {};
 
   for (const r of responses) {
+    const score = r.reverse ? 6 - r.rating : r.rating;
     if (!dimensions[r.dimension]) {
       dimensions[r.dimension] = {
         total: 0,
@@ -112,12 +120,12 @@ export function getDimensionScores(
         supportiveness: [],
       };
     }
-    dimensions[r.dimension].total += r.rating;
+    dimensions[r.dimension].total += score;
     dimensions[r.dimension].count += 1;
     if (r.axis === "accountability") {
-      dimensions[r.dimension].accountability.push(r.rating);
+      dimensions[r.dimension].accountability.push(score);
     } else {
-      dimensions[r.dimension].supportiveness.push(r.rating);
+      dimensions[r.dimension].supportiveness.push(score);
     }
   }
 

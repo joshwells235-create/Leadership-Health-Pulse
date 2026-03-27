@@ -56,6 +56,7 @@ interface Answer {
   questionText: string;
   rating: number;
   axis: "accountability" | "supportiveness";
+  reverse?: boolean;
 }
 
 export default function ManagerAssessmentSurvey() {
@@ -130,6 +131,7 @@ export default function ManagerAssessmentSurvey() {
             questionText: question.text,
             rating,
             axis: question.axis,
+            ...(question.reverse ? { reverse: true } : {}),
           },
         ];
       });
@@ -178,6 +180,7 @@ export default function ManagerAssessmentSurvey() {
       const responseData: ResponseData[] = answers.map((a) => ({
         rating: a.rating,
         axis: a.axis,
+        ...(a.reverse ? { reverse: true } : {}),
       }));
       const result = calculateQuadrant(responseData);
 
