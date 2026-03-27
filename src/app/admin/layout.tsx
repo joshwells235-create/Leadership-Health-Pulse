@@ -26,6 +26,7 @@ export default function AdminLayout({
 
   const navItems = [
     { href: "/admin", label: "Dashboard" },
+    { href: "/admin/assessments", label: "Assessments" },
     { href: "/admin/leads", label: "Leads" },
   ];
 
