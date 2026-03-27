@@ -1,79 +1,95 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { getScoreColorLight } from "@/components/report-components";
 
 interface Stats {
-  totalSurveys: number;
+  totalCompanies: number;
+  activeAssessments: number;
   completedSurveys: number;
-  completedThisWeek: number;
-  avgScore: number;
-  totalLeads: number;
   newLeads: number;
 }
 
-interface SurveyRow {
+interface CompanyCard {
   id: string;
-  respondent_name: string;
-  respondent_email: string;
-  status: string;
-  survey_path: string;
-  source: string;
-  referred_by: string | null;
-  created_at: string;
-  completed_at: string | null;
-  companies: {
-    name: string;
-    industry: string | null;
-    employee_count_range: string;
+  name: string;
+  industry: string | null;
+  employee_count_range: string;
+  latestSurvey: {
+    id: string;
+    status: string;
+    completed_at: string | null;
+    overall_score: number | null;
   } | null;
-  reports: { id: string; overall_score: number }[] | null;
+  assessment: {
+    id: string;
+    name: string;
+    slug: string;
+    status: string;
+    totalSessions: number;
+    completedSessions: number;
+  } | null;
+  lastActivity: string;
 }
 
-export default function AdminDashboard() {
-  const router = useRouter();
+export default function AdminCompanies() {
   const [stats, setStats] = useState<Stats | null>(null);
-  const [surveys, setSurveys] = useState<SurveyRow[]>([]);
+  const [companies, setCompanies] = useState<CompanyCard[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [sourceFilter, setSourceFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [showCreate, setShowCreate] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [newCompany, setNewCompany] = useState("");
+  const [newIndustry, setNewIndustry] = useState("");
 
   useEffect(() => {
     fetchStats();
-    fetchSurveys();
+    fetchCompanies();
   }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => fetchSurveys(), 300);
-    return () => clearTimeout(timer);
-  }, [search, sourceFilter, statusFilter]);
 
   async function fetchStats() {
     const res = await fetch("/api/admin/stats");
-    if (res.ok) {
-      setStats(await res.json());
-    }
+    if (res.ok) setStats(await res.json());
   }
 
-  async function fetchSurveys() {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (search) params.set("search", search);
-    if (sourceFilter) params.set("source", sourceFilter);
-    if (statusFilter) params.set("status", statusFilter);
-
-    const res = await fetch(`/api/admin/surveys?${params.toString()}`);
+  async function fetchCompanies() {
+    const res = await fetch("/api/admin/companies");
     if (res.ok) {
       const data = await res.json();
-      setSurveys(data.surveys || []);
+      setCompanies(data.companies || []);
     }
     setLoading(false);
   }
 
-  function formatDate(dateStr: string | null) {
-    if (!dateStr) return "";
+  async function handleCreate() {
+    if (!newCompany.trim()) return;
+    setCreating(true);
+    try {
+      const res = await fetch("/api/admin/assessments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: newCompany,
+          industry: newIndustry || null,
+        }),
+      });
+      if (res.ok) {
+        setNewCompany("");
+        setNewIndustry("");
+        setShowCreate(false);
+        await fetchCompanies();
+        await fetchStats();
+      } else {
+        const data = await res.json();
+        alert(`Error: ${data.error || "Failed to create assessment"}`);
+      }
+    } catch {
+      alert("Failed to create assessment.");
+    }
+    setCreating(false);
+  }
+
+  function formatDate(dateStr: string) {
     return new Date(dateStr).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -83,17 +99,23 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-2xl font-bold text-navy">Dashboard</h1>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-navy">Companies</h1>
+        <button
+          onClick={() => setShowCreate(!showCreate)}
+          className="bg-blue text-white text-sm font-semibold px-4 py-2 rounded-md hover:bg-blue/90"
+        >
+          New Assessment
+        </button>
+      </div>
 
       {/* Stats Bar */}
       {stats && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard label="Total Surveys" value={stats.totalSurveys} />
-          <StatCard label="Completed This Week" value={stats.completedThisWeek} />
-          <StatCard
-            label="Avg Score"
-            value={stats.avgScore ? `${stats.avgScore}/5.0` : "N/A"}
-          />
+          <StatCard label="Companies" value={stats.totalCompanies} />
+          <StatCard label="Active Assessments" value={stats.activeAssessments} />
+          <StatCard label="Completed Surveys" value={stats.completedSurveys} />
           <StatCard
             label="New Leads"
             value={stats.newLeads}
@@ -102,139 +124,127 @@ export default function AdminDashboard() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <input
-          type="text"
-          placeholder="Search by name or email..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="px-4 py-2 rounded-md border border-navy/20 bg-white text-navy text-sm focus:outline-none focus:ring-2 focus:ring-blue w-64"
-        />
-        <select
-          value={sourceFilter}
-          onChange={(e) => setSourceFilter(e.target.value)}
-          className="px-4 py-2 rounded-md border border-navy/20 bg-white text-navy text-sm focus:outline-none focus:ring-2 focus:ring-blue"
-        >
-          <option value="">All Sources</option>
-          <option value="warm">Warm</option>
-          <option value="cold">Cold</option>
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-4 py-2 rounded-md border border-navy/20 bg-white text-navy text-sm focus:outline-none focus:ring-2 focus:ring-blue"
-        >
-          <option value="">All Statuses</option>
-          <option value="completed">Completed</option>
-          <option value="in_progress">In Progress</option>
-        </select>
-      </div>
+      {/* Create Assessment Form */}
+      {showCreate && (
+        <div className="bg-white rounded-xl border border-navy/10 shadow-[0px_2px_20px_rgba(0,0,0,0.06)] p-6">
+          <h3 className="font-semibold text-navy mb-4">
+            Deploy Assessment to a New Company
+          </h3>
+          <div className="flex gap-4 items-end">
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-navy/60 mb-1">
+                Company Name
+              </label>
+              <input
+                type="text"
+                value={newCompany}
+                onChange={(e) => setNewCompany(e.target.value)}
+                className="w-full px-3 py-2 rounded-md border border-navy/20 text-sm text-navy"
+                placeholder="Acme Corp"
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-navy/60 mb-1">
+                Industry (optional)
+              </label>
+              <input
+                type="text"
+                value={newIndustry}
+                onChange={(e) => setNewIndustry(e.target.value)}
+                className="w-full px-3 py-2 rounded-md border border-navy/20 text-sm text-navy"
+                placeholder="Manufacturing"
+              />
+            </div>
+            <button
+              onClick={handleCreate}
+              disabled={!newCompany.trim() || creating}
+              className="bg-navy text-white text-sm font-semibold px-6 py-2 rounded-md hover:bg-navy/90 disabled:opacity-50"
+            >
+              {creating ? "Creating..." : "Create"}
+            </button>
+          </div>
+        </div>
+      )}
 
-      {/* Survey Table */}
-      <div className="bg-white rounded-xl border border-navy/10 shadow-[0px_2px_20px_rgba(0,0,0,0.06)] overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-navy/5 border-b border-navy/10">
-              <th className="text-left p-4 text-xs font-semibold text-navy/60 uppercase tracking-wide">
-                Respondent
-              </th>
-              <th className="text-left p-4 text-xs font-semibold text-navy/60 uppercase tracking-wide">
-                Company
-              </th>
-              <th className="text-left p-4 text-xs font-semibold text-navy/60 uppercase tracking-wide hidden md:table-cell">
-                Date
-              </th>
-              <th className="text-center p-4 text-xs font-semibold text-navy/60 uppercase tracking-wide">
-                Score
-              </th>
-              <th className="text-center p-4 text-xs font-semibold text-navy/60 uppercase tracking-wide hidden md:table-cell">
-                Path
-              </th>
-              <th className="text-center p-4 text-xs font-semibold text-navy/60 uppercase tracking-wide">
-                Status
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={6} className="text-center p-8 text-navy/40">
-                  Loading...
-                </td>
-              </tr>
-            ) : surveys.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="text-center p-8 text-navy/40">
-                  No surveys found.
-                </td>
-              </tr>
-            ) : (
-              surveys.map((s) => {
-                const score =
-                  s.reports && s.reports.length > 0
-                    ? s.reports[0].overall_score
-                    : null;
-                return (
-                  <tr
-                    key={s.id}
-                    onClick={() => router.push(`/admin/survey/${s.id}`)}
-                    className="border-b border-navy/5 hover:bg-navy/3 cursor-pointer transition-colors"
-                  >
-                    <td className="p-4">
-                      <div className="font-semibold text-navy text-sm">
-                        {s.respondent_name}
-                      </div>
-                      <div className="text-navy/50 text-xs">
-                        {s.respondent_email}
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="text-navy text-sm">
-                        {s.companies?.name || "Unknown"}
-                      </div>
-                      <div className="text-navy/50 text-xs">
-                        {s.companies?.employee_count_range || ""}{" "}
-                        {s.companies?.industry ? `· ${s.companies.industry}` : ""}
-                      </div>
-                    </td>
-                    <td className="p-4 text-navy/60 text-sm hidden md:table-cell">
-                      {formatDate(s.completed_at || s.created_at)}
-                    </td>
-                    <td className="p-4 text-center">
-                      {score ? (
-                        <span
-                          className={`font-bold text-sm ${getScoreColorLight(score)}`}
-                        >
-                          {score}
-                        </span>
-                      ) : (
-                        <span className="text-navy/30 text-sm">--</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-center hidden md:table-cell">
-                      <span className="text-xs text-navy/50">
-                        {s.survey_path === "three_tier" ? "3-Tier" : "2-Tier"}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <span
-                        className={`inline-block px-2.5 py-1 rounded-full text-xs font-medium ${
-                          s.status === "completed"
-                            ? "bg-blue/10 text-blue"
-                            : "bg-amber/20 text-amber"
-                        }`}
+      {/* Company Cards */}
+      {loading ? (
+        <p className="text-navy/40 py-10 text-center">Loading...</p>
+      ) : companies.length === 0 ? (
+        <div className="text-center py-20 bg-white rounded-xl border border-navy/10 shadow-[0px_2px_20px_rgba(0,0,0,0.06)]">
+          <p className="text-navy/40">No companies yet.</p>
+          <p className="text-navy/30 text-sm mt-1">
+            Click &quot;New Assessment&quot; to deploy one to a client.
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {companies.map((c) => (
+            <Link
+              key={c.id}
+              href={`/admin/companies/${c.id}`}
+              className="block bg-white rounded-xl border border-navy/10 shadow-[0px_2px_20px_rgba(0,0,0,0.06)] p-6 hover:border-blue/30 hover:shadow-[0px_4px_24px_rgba(0,126,250,0.1)] transition-all"
+            >
+              {/* Company header */}
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="font-bold text-navy text-lg">{c.name}</h3>
+                  <p className="text-sm text-navy/50">
+                    {[c.industry, c.employee_count_range]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                </div>
+                <span className="text-xs text-navy/40">
+                  {formatDate(c.lastActivity)}
+                </span>
+              </div>
+
+              {/* Product line indicators */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* CEO Diagnostic */}
+                <div className="bg-navy/[0.03] rounded-lg p-3">
+                  <p className="text-[10px] font-semibold text-navy/40 uppercase tracking-wide mb-1">
+                    CEO Diagnostic
+                  </p>
+                  {c.latestSurvey ? (
+                    c.latestSurvey.status === "completed" &&
+                    c.latestSurvey.overall_score ? (
+                      <p
+                        className={`text-lg font-bold ${getScoreColorLight(c.latestSurvey.overall_score)}`}
                       >
-                        {s.status === "completed" ? "Completed" : "In Progress"}
+                        {c.latestSurvey.overall_score}/5.0
+                      </p>
+                    ) : (
+                      <p className="text-sm text-amber font-medium">
+                        In Progress
+                      </p>
+                    )
+                  ) : (
+                    <p className="text-sm text-navy/30">No survey</p>
+                  )}
+                </div>
+
+                {/* ELITE5 Assessment */}
+                <div className="bg-navy/[0.03] rounded-lg p-3">
+                  <p className="text-[10px] font-semibold text-navy/40 uppercase tracking-wide mb-1">
+                    ELITE5
+                  </p>
+                  {c.assessment ? (
+                    <p className="text-lg font-bold text-navy">
+                      {c.assessment.completedSessions}
+                      <span className="text-sm font-normal text-navy/40">
+                        /{c.assessment.totalSessions} completed
                       </span>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                    </p>
+                  ) : (
+                    <p className="text-sm text-navy/30">Not deployed</p>
+                  )}
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

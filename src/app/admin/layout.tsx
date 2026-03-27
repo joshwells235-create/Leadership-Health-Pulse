@@ -25,8 +25,7 @@ export default function AdminLayout({
   }
 
   const navItems = [
-    { href: "/admin", label: "Dashboard" },
-    { href: "/admin/assessments", label: "Assessments" },
+    { href: "/admin", label: "Companies" },
     { href: "/admin/leads", label: "Leads" },
   ];
 
@@ -42,19 +41,25 @@ export default function AdminLayout({
                 LeadShift
               </Link>
               <div className="flex gap-1">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                      pathname === item.href
-                        ? "bg-white/15 text-white"
-                        : "text-white/70 hover:text-white hover:bg-white/10"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+                {navItems.map((item) => {
+                  const isActive =
+                    item.href === "/admin"
+                      ? pathname === "/admin" || pathname.startsWith("/admin/companies")
+                      : pathname === item.href || pathname.startsWith(item.href + "/");
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                        isActive
+                          ? "bg-white/15 text-white"
+                          : "text-white/70 hover:text-white hover:bg-white/10"
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  );
+                })}
               </div>
             </div>
 

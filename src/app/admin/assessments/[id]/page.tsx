@@ -145,10 +145,10 @@ export default function AdminAssessmentDetail() {
       <div className="flex items-start justify-between mb-6">
         <div>
           <Link
-            href="/admin/assessments"
+            href={company ? `/admin/companies/${(assessment as Record<string, unknown>).company_id}` : "/admin"}
             className="text-sm text-navy/40 hover:text-navy/60 mb-2 inline-block"
           >
-            &larr; All Assessments
+            &larr; {company ? (company.name as string) : "All Companies"}
           </Link>
           <h1 className="text-2xl font-bold text-navy">
             {company?.name as string}

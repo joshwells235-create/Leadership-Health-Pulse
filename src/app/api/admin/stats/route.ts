@@ -42,6 +42,25 @@ export async function GET() {
       ) / 10;
   }
 
+  // Active manager assessments
+  const { count: activeAssessments } = await supabase
+    .from("manager_assessments")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "active");
+
+  // Count distinct companies that have at least one survey or assessment
+  const { data: surveyCompanies } = await supabase
+    .from("surveys")
+    .select("company_id");
+  const { data: assessmentCompanies } = await supabase
+    .from("manager_assessments")
+    .select("company_id");
+  const companyIds = new Set([
+    ...(surveyCompanies || []).map((r) => r.company_id),
+    ...(assessmentCompanies || []).map((r) => r.company_id),
+  ]);
+  const totalCompanies = companyIds.size;
+
   // Total leads (cold path)
   const { count: totalLeads } = await supabase
     .from("leads")
@@ -54,6 +73,8 @@ export async function GET() {
     .eq("status", "new");
 
   return NextResponse.json({
+    totalCompanies,
+    activeAssessments: activeAssessments || 0,
     totalSurveys: totalSurveys || 0,
     completedSurveys: completedSurveys || 0,
     completedThisWeek: completedThisWeek || 0,
