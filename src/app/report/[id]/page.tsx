@@ -233,19 +233,23 @@ export default function ReportPage() {
       } else {
         // Generate the report
         try {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), 150000); // 150s timeout
+
           const res = await fetch("/api/generate-report", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ surveyId }),
+            signal: controller.signal,
           });
 
+          clearTimeout(timeout);
+
+          const data = await res.json();
+
           if (!res.ok) {
-            const data = await res.json();
             throw new Error(data.error || "Failed to generate report");
           }
-
-          // Use the report data returned directly from the API
-          const data = await res.json();
           setReport(data.report as ReportData);
           setSurvey(data.survey as SurveyData);
           setStatus("ready");
