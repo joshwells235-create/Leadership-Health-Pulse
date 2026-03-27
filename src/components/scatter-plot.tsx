@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MIDPOINT } from "@/lib/quadrant-scoring";
 
 interface ManagerPoint {
   id: string;
@@ -57,8 +58,8 @@ export default function ScatterPlot({
     return padding + (1 - (score - 1) / 4) * plotHeight;
   }
 
-  const midX = toPixelX(3);
-  const midY = toPixelY(3);
+  const midX = toPixelX(MIDPOINT);
+  const midY = toPixelY(MIDPOINT);
 
   return (
     <div className="relative inline-block">

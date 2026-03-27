@@ -37,11 +37,22 @@ export interface ResponseData {
 //    clustering everyone in the top-right quadrant.
 const MIDPOINT = 3.8;
 
+// Internal/admin labels (used in admin dashboard, CEO/CPO org reports)
 const QUADRANT_LABELS: Record<Quadrant, string> = {
   intentional: "Intentional Leadership",
   command_control: "Command & Control",
   overly_supportive: "Overly Supportive",
   absent: "Absent / Disengaged",
+};
+
+// Manager-facing labels (what the individual manager sees in their report)
+// These are developmental, not judgmental. No manager should open their
+// report and feel attacked by their quadrant name.
+const QUADRANT_LABELS_MANAGER: Record<Quadrant, string> = {
+  intentional: "Intentional Leadership",
+  command_control: "Results-Driven",
+  overly_supportive: "People-First",
+  absent: "Emerging Leader",
 };
 
 export function calculateQuadrant(responses: ResponseData[]): QuadrantResult {
@@ -146,4 +157,4 @@ export function getGapToIntentional(result: QuadrantResult) {
   };
 }
 
-export { QUADRANT_LABELS };
+export { QUADRANT_LABELS, QUADRANT_LABELS_MANAGER, MIDPOINT };

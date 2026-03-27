@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { QUADRANT_LABELS, type Quadrant } from "@/lib/quadrant-scoring";
+import { QUADRANT_LABELS_MANAGER, MIDPOINT, type Quadrant } from "@/lib/quadrant-scoring";
 import { generatePDF } from "@/lib/generate-pdf";
 
 interface SessionData {
@@ -171,58 +171,54 @@ export default function ManagerAssessmentResult() {
             className="inline-block px-6 py-3 rounded-lg text-white font-bold text-xl"
             style={{ backgroundColor: quadrantColor }}
           >
-            {QUADRANT_LABELS[session.quadrant]}
-          </div>
-          <div className="mt-4 flex justify-center gap-8 text-sm text-navy/60">
-            <span>
-              Supportiveness:{" "}
-              <strong className="text-navy">{session.x_score}/5.0</strong>
-            </span>
-            <span>
-              Accountability:{" "}
-              <strong className="text-navy">{session.y_score}/5.0</strong>
-            </span>
+            {QUADRANT_LABELS_MANAGER[session.quadrant]}
           </div>
         </div>
 
         {/* Mini Quadrant Visual */}
-        <div className="flex justify-center mb-10">
-          <div className="relative w-64 h-64 border-2 border-navy/20 rounded-lg overflow-hidden">
-            {/* Quadrant labels */}
-            <div className="absolute top-2 left-2 text-[10px] text-navy/40 font-medium">
-              Command &amp; Control
+        {(() => {
+          // Position crosshairs at the MIDPOINT threshold (3.8), not at 50%
+          const crossX = ((MIDPOINT - 1) / 4) * 100;
+          const crossY = 100 - ((MIDPOINT - 1) / 4) * 100;
+          return (
+            <div className="flex justify-center mb-10">
+              <div className="relative w-64 h-64 border-2 border-navy/20 rounded-lg overflow-hidden">
+                {/* Quadrant labels */}
+                <div className="absolute top-2 left-2 text-[10px] text-navy/40 font-medium">
+                  Results-Driven
+                </div>
+                <div className="absolute top-2 right-2 text-[10px] text-blue font-medium">
+                  Intentional
+                </div>
+                <div className="absolute bottom-2 left-2 text-[10px] text-navy/40 font-medium">
+                  Emerging
+                </div>
+                <div className="absolute bottom-2 right-2 text-[10px] text-navy/40 font-medium">
+                  People-First
+                </div>
+                {/* Crosshairs at threshold */}
+                <div
+                  className="absolute top-0 bottom-0 w-px bg-navy/10"
+                  style={{ left: `${crossX}%` }}
+                />
+                <div
+                  className="absolute left-0 right-0 h-px bg-navy/10"
+                  style={{ top: `${crossY}%` }}
+                />
+                {/* Dot */}
+                <div
+                  className="absolute w-4 h-4 rounded-full border-2 border-white shadow-md"
+                  style={{
+                    backgroundColor: quadrantColor,
+                    left: `${((session.x_score - 1) / 4) * 100}%`,
+                    bottom: `${((session.y_score - 1) / 4) * 100}%`,
+                    transform: "translate(-50%, 50%)",
+                  }}
+                />
+              </div>
             </div>
-            <div className="absolute top-2 right-2 text-[10px] text-blue font-medium">
-              Intentional
-            </div>
-            <div className="absolute bottom-2 left-2 text-[10px] text-magenta font-medium">
-              Absent
-            </div>
-            <div className="absolute bottom-2 right-2 text-[10px] text-navy/40 font-medium">
-              Overly Supportive
-            </div>
-            {/* Crosshairs */}
-            <div className="absolute top-0 bottom-0 left-1/2 w-px bg-navy/10" />
-            <div className="absolute left-0 right-0 top-1/2 h-px bg-navy/10" />
-            {/* Axis labels */}
-            <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] text-navy/30">
-              Supportiveness
-            </div>
-            <div className="absolute top-1/2 -left-5 -translate-y-1/2 -rotate-90 text-[9px] text-navy/30">
-              Accountability
-            </div>
-            {/* Dot */}
-            <div
-              className="absolute w-4 h-4 rounded-full border-2 border-white shadow-md"
-              style={{
-                backgroundColor: quadrantColor,
-                left: `${((session.x_score - 1) / 4) * 100}%`,
-                bottom: `${((session.y_score - 1) / 4) * 100}%`,
-                transform: "translate(-50%, 50%)",
-              }}
-            />
-          </div>
-        </div>
+          );
+        })()}
 
         {/* Report Sections */}
         <div className="space-y-8">
