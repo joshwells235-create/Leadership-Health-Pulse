@@ -427,6 +427,59 @@ Generate the full 5-section report as specified in your instructions.`,
       );
     }
 
+    // SECOND PASS: AI Detection Sweep
+    // Send the generated report through a cleanup pass to eliminate AI-sounding language
+    const sweepMessage = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 8000,
+      messages: [
+        {
+          role: "user",
+          content: `You are an editor. Your only job is to rewrite the report below so it sounds like a human consultant wrote it, not an AI.
+
+Go line by line through every section and fix these violations:
+
+1. HOLLOW INTENSIFIERS: Remove or replace "innovative," "cutting-edge," "leverage," "delve," "navigate," "landscape," "robust," "seamless," "elevate," "holistic," "synergy," "empower," "optimize," "actionable," "stakeholder," "best practices," "value-add," "paradigm," "transformative," "strategic imperative," and any similar corporate filler.
+
+2. "IT'S NOT X, IT'S Y" CONSTRUCTIONS: Rewrite any sentence that follows this pattern. Instead of "This isn't about bad people, it's about under-investment," write "You have capable people who were never given the tools to lead."
+
+3. PARALLEL SENTENCE STRUCTURES: If three consecutive sentences follow the same grammatical pattern, rewrite them. Vary the rhythm. Short sentences next to long ones.
+
+4. TRIADIC LISTS: Three generic items separated by commas is filler. "Execution stalls, communication breaks down, and problems flow upward" says nothing specific. Pick the one that matters most and say it with specificity. No more than two triadic lists in the entire report.
+
+5. HEDGING: Remove "It's important to note," "It's worth considering," "This suggests that," "Interestingly." Just say the thing.
+
+6. GENERIC OPENINGS: Remove "In today's," "When it comes to," "As organizations grow." Start with the insight.
+
+7. EM-DASHES: Replace every single em-dash (—) with a comma, semicolon, colon, or period. No exceptions.
+
+8. SCORE STACKING: If you see patterns like "(1/5)... (2/5)... (1/5)" stacked together, rewrite to weave scores into the narrative naturally.
+
+9. TEMPLATE LANGUAGE: Any sentence that could appear in a McKinsey or Korn Ferry report without modification needs to be rewritten to sound like a specific person talking to a specific CEO.
+
+Return the exact same JSON structure with the cleaned-up HTML content. Change ONLY the language. Do not change the structure, the data, or the insights.
+
+Here is the report to clean up:
+
+${JSON.stringify(generatedContent)}
+
+Return ONLY the cleaned JSON object, no other text.`,
+        },
+      ],
+    });
+
+    // Parse the swept report
+    const sweepText = sweepMessage.content[0].type === "text" ? sweepMessage.content[0].text : "";
+    try {
+      const sweepMatch = sweepText.match(/\{[\s\S]*\}/);
+      if (sweepMatch) {
+        generatedContent = JSON.parse(sweepMatch[0]);
+      }
+    } catch {
+      console.error("Sweep parse failed, using original report");
+      // If the sweep fails to parse, we keep the original generatedContent
+    }
+
     // Build tier scores for storage
     const tierScoresForDb: Record<string, number> = {};
     for (const [tierKey, tierData] of Object.entries(scores.tiers)) {
