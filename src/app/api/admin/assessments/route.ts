@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       .insert({
         name: companyName,
         industry: industry || null,
-        employee_count_range: employeeRange || null,
+        employee_count_range: employeeRange || "Unknown",
       })
       .select()
       .single();
