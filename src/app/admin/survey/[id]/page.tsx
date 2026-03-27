@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { generatePDF } from "@/lib/generate-pdf";
 import {
@@ -37,6 +37,7 @@ interface LeadData {
 
 export default function AdminSurveyDetail() {
   const params = useParams();
+  const router = useRouter();
   const surveyId = params.id as string;
 
   const [loading, setLoading] = useState(true);
@@ -98,6 +99,27 @@ export default function AdminSurveyDetail() {
       console.error("PDF download failed:", err);
     }
     setIsDownloading(false);
+  }
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  async function handleDelete() {
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/surveys/${surveyId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        router.push("/admin");
+      } else {
+        alert("Failed to delete survey.");
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert("Failed to delete survey.");
+    }
+    setIsDeleting(false);
   }
 
   async function handleUpdateLead() {
@@ -185,8 +207,40 @@ export default function AdminSurveyDetail() {
             >
               {isRegenerating ? "Regenerating..." : "Regenerate Report"}
             </button>
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="bg-white text-magenta text-sm font-semibold px-4 py-2 rounded-md border border-magenta/30 hover:bg-magenta/5"
+            >
+              Delete
+            </button>
           </div>
         </div>
+
+        {/* Delete Confirmation */}
+        {showDeleteConfirm && (
+          <div className="mt-4 p-4 bg-magenta/5 border border-magenta/20 rounded-md">
+            <p className="text-sm text-navy font-medium">
+              Are you sure you want to delete this survey and all associated data?
+              This includes all ratings, open-ended responses, generated reports, and lead records.
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-3 mt-3">
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="bg-magenta text-white text-sm font-semibold px-4 py-2 rounded-md hover:bg-magenta/90 disabled:opacity-50"
+              >
+                {isDeleting ? "Deleting..." : "Yes, Delete Permanently"}
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="text-navy/60 text-sm font-medium hover:text-navy"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
         {reports.length > 1 && (
           <p className="text-xs text-navy/40 mt-3">
             {reports.length} report versions generated. Showing latest (v
