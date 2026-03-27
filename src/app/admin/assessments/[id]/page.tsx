@@ -5,6 +5,14 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import ScatterPlot from "@/components/scatter-plot";
 import { QUADRANT_LABELS, type Quadrant } from "@/lib/quadrant-scoring";
+import { generatePDF } from "@/lib/generate-pdf";
+
+interface OrgReportContent {
+  overview: string;
+  distribution_analysis: string;
+  collective_gaps: string;
+  development_priorities: string;
+}
 
 interface SessionRow {
   id: string;
@@ -30,6 +38,8 @@ export default function AdminAssessmentDetail() {
   const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [generatingOrgReport, setGeneratingOrgReport] = useState(false);
+  const [orgReport, setOrgReport] = useState<OrgReportContent | null>(null);
+  const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -41,6 +51,13 @@ export default function AdminAssessmentDetail() {
       const data = await res.json();
       setAssessment(data.assessment);
       setSessions(data.sessions);
+      // Find the latest org report
+      const orgReports = (data.reports || []).filter(
+        (r: Record<string, unknown>) => r.report_type === "organizational"
+      );
+      if (orgReports.length > 0) {
+        setOrgReport(orgReports[0].generated_content as OrgReportContent);
+      }
     }
     setLoading(false);
   }
@@ -59,16 +76,31 @@ export default function AdminAssessmentDetail() {
   async function handleGenerateOrgReport() {
     setGeneratingOrgReport(true);
     try {
-      await fetch("/api/assess/org-report", {
+      const res = await fetch("/api/assess/org-report", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ assessmentId }),
       });
+      if (res.ok) {
+        const data = await res.json();
+        setOrgReport(data.report as OrgReportContent);
+      }
       await fetchData();
     } catch (err) {
       console.error("Org report generation failed:", err);
     }
     setGeneratingOrgReport(false);
+  }
+
+  async function handleDownloadOrgPDF() {
+    setIsDownloadingPDF(true);
+    try {
+      const companyName = ((company as Record<string, unknown>)?.name as string || "Company").replace(/\s+/g, "-");
+      await generatePDF("org-report-content", `ELITE5-Org-Report-${companyName}.pdf`);
+    } catch (err) {
+      console.error("PDF download failed:", err);
+    }
+    setIsDownloadingPDF(false);
   }
 
   if (loading) {
@@ -223,6 +255,85 @@ export default function AdminAssessmentDetail() {
           </p>
           <p className="text-sm text-navy/30 mt-2 font-mono">
             {assessmentLink}
+          </p>
+        </div>
+      )}
+
+      {/* Organizational Report */}
+      {orgReport && (
+        <div className="mb-8" id="org-report-content">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-navy">
+              Organizational Report
+            </h2>
+            <div className="flex gap-2">
+              <button
+                onClick={handleDownloadOrgPDF}
+                disabled={isDownloadingPDF}
+                className="text-sm text-navy font-medium border border-navy/20 px-4 py-2 rounded-md hover:bg-navy/5 disabled:opacity-50"
+              >
+                {isDownloadingPDF ? "Generating..." : "Download PDF"}
+              </button>
+              <button
+                onClick={handleGenerateOrgReport}
+                disabled={generatingOrgReport}
+                className="text-sm text-blue font-medium border border-blue/20 px-4 py-2 rounded-md hover:bg-blue/5 disabled:opacity-50"
+              >
+                {generatingOrgReport ? "Regenerating..." : "Regenerate"}
+              </button>
+            </div>
+          </div>
+          <div className="space-y-6">
+            <section className="bg-white rounded-lg border border-navy/10 p-8">
+              <h3 className="text-lg font-bold text-navy mb-4">Overview</h3>
+              <div
+                className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: orgReport.overview }}
+              />
+            </section>
+            <section className="bg-white rounded-lg border border-navy/10 p-8">
+              <h3 className="text-lg font-bold text-navy mb-4">
+                Distribution Analysis
+              </h3>
+              <div
+                className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
+                dangerouslySetInnerHTML={{
+                  __html: orgReport.distribution_analysis,
+                }}
+              />
+            </section>
+            <section className="bg-white rounded-lg border border-navy/10 p-8">
+              <h3 className="text-lg font-bold text-navy mb-4">
+                Collective Gaps
+              </h3>
+              <div
+                className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
+                dangerouslySetInnerHTML={{
+                  __html: orgReport.collective_gaps,
+                }}
+              />
+            </section>
+            <section className="bg-white rounded-lg border border-navy/10 p-8">
+              <h3 className="text-lg font-bold text-navy mb-4">
+                Development Priorities
+              </h3>
+              <div
+                className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
+                dangerouslySetInnerHTML={{
+                  __html: orgReport.development_priorities,
+                }}
+              />
+            </section>
+          </div>
+        </div>
+      )}
+
+      {/* Generating indicator */}
+      {generatingOrgReport && !orgReport && (
+        <div className="mb-8 bg-white rounded-lg border border-navy/10 p-10 text-center">
+          <div className="w-8 h-8 border-2 border-navy/20 border-t-navy rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-navy/60">
+            Generating organizational report. This takes 30 to 60 seconds...
           </p>
         </div>
       )}
