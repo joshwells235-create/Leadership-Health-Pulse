@@ -1,6 +1,10 @@
 -- Additional RLS policies needed for admin operations via anon key
 -- Run this in Supabase SQL Editor after the initial table creation
 
+-- Allow anon to insert assessments (admin uses anon key server-side)
+CREATE POLICY "Allow anon to insert assessments" ON manager_assessments
+  FOR INSERT WITH CHECK (true);
+
 -- Allow anon to delete assessments (admin uses anon key server-side)
 CREATE POLICY "Allow anon to delete assessments" ON manager_assessments
   FOR DELETE USING (true);
