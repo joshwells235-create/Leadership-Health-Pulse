@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 
+// Allow up to 120 seconds for AI report generation (requires Vercel Pro)
+export const maxDuration = 120;
+
 // Use service-level Supabase client (server-side)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
