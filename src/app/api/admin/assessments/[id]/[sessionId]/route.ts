@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { verifyAdmin } from "@/lib/admin-auth";
+
+const anonSupabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function GET(
   request: NextRequest,
@@ -8,11 +14,9 @@ export async function GET(
   const auth = await verifyAdmin();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { supabase } = auth;
   const { sessionId } = await params;
 
-  // Fetch session
-  const { data: session } = await supabase
+  const { data: session } = await anonSupabase
     .from("manager_sessions")
     .select("*, manager_assessments(*, companies(*))")
     .eq("id", sessionId)
@@ -22,23 +26,20 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Fetch responses
-  const { data: responses } = await supabase
+  const { data: responses } = await anonSupabase
     .from("manager_responses")
     .select("*")
     .eq("session_id", sessionId)
     .order("dimension")
     .order("question_index");
 
-  // Fetch reports
-  const { data: reports } = await supabase
+  const { data: reports } = await anonSupabase
     .from("manager_reports")
     .select("*")
     .eq("session_id", sessionId)
     .order("version", { ascending: false });
 
-  // Fetch previous attempts by same email for reassessment comparison
-  const { data: previousSessions } = await supabase
+  const { data: previousSessions } = await anonSupabase
     .from("manager_sessions")
     .select("id, attempt_number, quadrant, x_score, y_score, completed_at")
     .eq("assessment_id", session.assessment_id)
@@ -61,10 +62,9 @@ export async function DELETE(
   const auth = await verifyAdmin();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { supabase } = auth;
   const { sessionId } = await params;
 
-  const { error } = await supabase
+  const { error } = await anonSupabase
     .from("manager_sessions")
     .delete()
     .eq("id", sessionId);

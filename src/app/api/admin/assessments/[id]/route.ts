@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { verifyAdmin } from "@/lib/admin-auth";
+
+const anonSupabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function GET(
   request: NextRequest,
@@ -8,11 +14,9 @@ export async function GET(
   const auth = await verifyAdmin();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { supabase } = auth;
   const { id } = await params;
 
-  // Fetch assessment with company
-  const { data: assessment } = await supabase
+  const { data: assessment } = await anonSupabase
     .from("manager_assessments")
     .select("*, companies(*)")
     .eq("id", id)
@@ -22,15 +26,13 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Fetch all sessions
-  const { data: sessions } = await supabase
+  const { data: sessions } = await anonSupabase
     .from("manager_sessions")
     .select("*")
     .eq("assessment_id", id)
     .order("created_at", { ascending: false });
 
-  // Fetch all reports for this assessment
-  const { data: reports } = await supabase
+  const { data: reports } = await anonSupabase
     .from("manager_reports")
     .select("*")
     .eq("assessment_id", id)
@@ -50,10 +52,9 @@ export async function DELETE(
   const auth = await verifyAdmin();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { supabase } = auth;
   const { id } = await params;
 
-  const { error } = await supabase
+  const { error } = await anonSupabase
     .from("manager_assessments")
     .delete()
     .eq("id", id);

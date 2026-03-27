@@ -39,20 +39,28 @@ export default function AdminAssessments() {
     if (!newCompany.trim()) return;
     setCreating(true);
 
-    const res = await fetch("/api/admin/assessments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        companyName: newCompany,
-        industry: newIndustry || null,
-      }),
-    });
+    try {
+      const res = await fetch("/api/admin/assessments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          companyName: newCompany,
+          industry: newIndustry || null,
+        }),
+      });
 
-    if (res.ok) {
-      setNewCompany("");
-      setNewIndustry("");
-      setShowCreate(false);
-      await fetchAssessments();
+      if (res.ok) {
+        setNewCompany("");
+        setNewIndustry("");
+        setShowCreate(false);
+        await fetchAssessments();
+      } else {
+        const data = await res.json();
+        alert(`Error: ${data.error || "Failed to create assessment"}`);
+      }
+    } catch (err) {
+      console.error("Create assessment error:", err);
+      alert("Failed to create assessment. Check the console for details.");
     }
 
     setCreating(false);

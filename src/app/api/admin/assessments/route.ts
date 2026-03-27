@@ -1,13 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { verifyAdmin } from "@/lib/admin-auth";
+
+// Use anon client for data operations (RLS allows anon inserts on companies)
+const anonSupabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
 export async function GET() {
   const auth = await verifyAdmin();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { supabase } = auth;
-
-  const { data: assessments, error } = await supabase
+  const { data: assessments, error } = await anonSupabase
     .from("manager_assessments")
     .select("*, companies(name, industry, employee_count_range)")
     .order("created_at", { ascending: false });
@@ -19,12 +24,12 @@ export async function GET() {
   // Get session counts for each assessment
   const enriched = await Promise.all(
     (assessments || []).map(async (a) => {
-      const { count: totalSessions } = await supabase
+      const { count: totalSessions } = await anonSupabase
         .from("manager_sessions")
         .select("*", { count: "exact", head: true })
         .eq("assessment_id", a.id);
 
-      const { count: completedSessions } = await supabase
+      const { count: completedSessions } = await anonSupabase
         .from("manager_sessions")
         .select("*", { count: "exact", head: true })
         .eq("assessment_id", a.id)
@@ -45,7 +50,6 @@ export async function POST(request: NextRequest) {
   const auth = await verifyAdmin();
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { supabase } = auth;
   const body = await request.json();
 
   const { companyName, industry, employeeRange, assessmentName } = body;
@@ -54,7 +58,7 @@ export async function POST(request: NextRequest) {
   let companyId = body.companyId;
 
   if (!companyId && companyName) {
-    const { data: company, error: companyError } = await supabase
+    const { data: company, error: companyError } = await anonSupabase
       .from("companies")
       .insert({
         name: companyName,
@@ -77,7 +81,7 @@ export async function POST(request: NextRequest) {
     .replace(/^-|-$/g, "");
 
   // Check if slug exists, append random if so
-  const { data: existing } = await supabase
+  const { data: existing } = await anonSupabase
     .from("manager_assessments")
     .select("id")
     .eq("slug", slug)
@@ -87,7 +91,7 @@ export async function POST(request: NextRequest) {
     ? `${slug}-${Math.random().toString(36).substring(2, 6)}`
     : slug;
 
-  const { data: assessment, error: assessError } = await supabase
+  const { data: assessment, error: assessError } = await anonSupabase
     .from("manager_assessments")
     .insert({
       company_id: companyId,
