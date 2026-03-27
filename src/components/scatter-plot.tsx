@@ -47,13 +47,26 @@ export default function ScatterPlot({
   const plotWidth = width - padding * 2;
   const plotHeight = height - padding * 2;
 
-  // Convert score (1-5) to pixel position
+  // Convert score (1-5) to pixel position.
+  // The MIDPOINT (3.8) maps to the visual center (50%).
+  // Scores 1 to 3.8 fill the left/bottom half.
+  // Scores 3.8 to 5 fill the right/top half.
+  function scoreToPercent(score: number) {
+    if (score <= MIDPOINT) {
+      // Map 1..MIDPOINT to 0..0.5
+      return ((score - 1) / (MIDPOINT - 1)) * 0.5;
+    } else {
+      // Map MIDPOINT..5 to 0.5..1
+      return 0.5 + ((score - MIDPOINT) / (5 - MIDPOINT)) * 0.5;
+    }
+  }
+
   function toPixelX(score: number) {
-    return padding + ((score - 1) / 4) * plotWidth;
+    return padding + scoreToPercent(score) * plotWidth;
   }
 
   function toPixelY(score: number) {
-    return padding + (1 - (score - 1) / 4) * plotHeight;
+    return padding + (1 - scoreToPercent(score)) * plotHeight;
   }
 
   // Visual crosshairs at the center (equal quadrants visually)

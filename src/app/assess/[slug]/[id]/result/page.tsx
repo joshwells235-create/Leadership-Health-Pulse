@@ -177,9 +177,15 @@ export default function ManagerAssessmentResult() {
 
         {/* Mini Quadrant Visual */}
         {(() => {
-          // Position crosshairs at the MIDPOINT threshold (3.8), not at 50%
-          const crossX = ((MIDPOINT - 1) / 4) * 100;
-          const crossY = 100 - ((MIDPOINT - 1) / 4) * 100;
+          // Map score so MIDPOINT lands at 50% visually
+          function scoreToPercent(score: number) {
+            if (score <= MIDPOINT) {
+              return ((score - 1) / (MIDPOINT - 1)) * 50;
+            }
+            return 50 + ((score - MIDPOINT) / (5 - MIDPOINT)) * 50;
+          }
+          const dotLeft = scoreToPercent(session.x_score);
+          const dotBottom = scoreToPercent(session.y_score);
           return (
             <div className="flex justify-center mb-10">
               <div className="relative w-64 h-64 border-2 border-navy/20 rounded-lg overflow-hidden">
@@ -196,22 +202,16 @@ export default function ManagerAssessmentResult() {
                 <div className="absolute bottom-2 right-2 text-[10px] text-navy/40 font-medium">
                   People-First
                 </div>
-                {/* Crosshairs at threshold */}
-                <div
-                  className="absolute top-0 bottom-0 w-px bg-navy/10"
-                  style={{ left: `${crossX}%` }}
-                />
-                <div
-                  className="absolute left-0 right-0 h-px bg-navy/10"
-                  style={{ top: `${crossY}%` }}
-                />
+                {/* Crosshairs at visual center */}
+                <div className="absolute top-0 bottom-0 left-1/2 w-px bg-navy/10" />
+                <div className="absolute left-0 right-0 top-1/2 h-px bg-navy/10" />
                 {/* Dot */}
                 <div
                   className="absolute w-4 h-4 rounded-full border-2 border-white shadow-md"
                   style={{
                     backgroundColor: quadrantColor,
-                    left: `${((session.x_score - 1) / 4) * 100}%`,
-                    bottom: `${((session.y_score - 1) / 4) * 100}%`,
+                    left: `${dotLeft}%`,
+                    bottom: `${dotBottom}%`,
                     transform: "translate(-50%, 50%)",
                   }}
                 />
