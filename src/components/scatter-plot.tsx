@@ -34,11 +34,11 @@ const QUADRANT_BG_COLORS = {
   absent: "rgba(234, 12, 103, 0.06)",
 };
 
-// Visible plot range — the realistic scoring band.
-// Nobody scores 20/20 or 40/40 in real assessments.
-// This zooms the plot so dots use more of the visual space.
-const PLOT_MIN = 20;
-const PLOT_MAX = 40;
+// Visual plot range — extends 2 points beyond the theoretical
+// min/max so dots never sit on the edge of the plot area.
+// Theoretical range is 20-40, but we show 18-42 for breathing room.
+const PLOT_MIN = 18;
+const PLOT_MAX = 42;
 
 export default function ScatterPlot({
   managers,
