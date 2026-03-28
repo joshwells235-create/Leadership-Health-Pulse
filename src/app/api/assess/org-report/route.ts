@@ -103,25 +103,22 @@ QUADRANT DISTRIBUTION
     dataSummary += `${QUADRANT_LABELS[q as Quadrant]}: ${count} (${pct}%)\n`;
   }
 
-  dataSummary += `\nCATEGORY AVERAGES (A and C scores per category)\n`;
-  for (const [dim, data] of Object.entries(dimensionTotals)) {
-    const perManager = data.count / sessions.length; // scenarios per manager per dimension
-    const avgA = perManager > 0 ? (data.a_sum / sessions.length).toFixed(1) : "N/A";
-    const avgC = perManager > 0 ? (data.c_sum / sessions.length).toFixed(1) : "N/A";
-    dataSummary += `${dim.replace(/_/g, " ")}: A=${avgA}/8  C=${avgC}/8\n`;
+  // Convert category averages to strength labels
+  function catStrength(avg: number) {
+    if (avg >= 7) return "strong";
+    if (avg >= 6) return "moderate";
+    if (avg >= 5) return "weak";
+    return "very weak";
   }
 
-  // Overall averages
-  const totalA = sessions.reduce((s, ses) => s + (ses.y_score || 0), 0);
-  const totalC = sessions.reduce((s, ses) => s + (ses.x_score || 0), 0);
-  const avgA = (totalA / sessions.length).toFixed(1);
-  const avgC = (totalC / sessions.length).toFixed(1);
+  dataSummary += `\nMANAGEMENT BEHAVIOR STRENGTHS (team average)\n`;
+  for (const [dim, data] of Object.entries(dimensionTotals)) {
+    const avgA = data.count > 0 ? data.a_sum / sessions.length : 0;
+    const avgC = data.count > 0 ? data.c_sum / sessions.length : 0;
+    dataSummary += `${dim.replace(/_/g, " ")}: Accountability = ${catStrength(avgA)}, Connection = ${catStrength(avgC)}\n`;
+  }
 
-  dataSummary += `\nOVERALL AXIS AVERAGES
-Accountability & Structure: ${avgA}/40
-Support & Connection: ${avgC}/40
-
-ONE-ON-ONE FREQUENCY
+  dataSummary += `\nONE-ON-ONE FREQUENCY
 Weekly/bi-weekly: ${freqCounts.weekly_biweekly} (${Math.round((freqCounts.weekly_biweekly / sessions.length) * 100)}%)
 Monthly: ${freqCounts.monthly} (${Math.round((freqCounts.monthly / sessions.length) * 100)}%)
 Occasional: ${freqCounts.occasional} (${Math.round((freqCounts.occasional / sessions.length) * 100)}%)
@@ -138,36 +135,52 @@ INDIVIDUAL PLACEMENTS
   for (const s of sessions) {
     dataSummary += `${s.respondent_name} (${s.respondent_title || "No title"}): ${
       QUADRANT_LABELS[(s.quadrant as Quadrant) || "absent"]
-    } - A:${s.y_score}/40 C:${s.x_score}/40\n`;
+    }\n`;
   }
 
-  const systemPrompt = `You are a senior leadership development consultant writing an organizational assessment report. This report is for the CEO or Chief People Officer, not individual managers.
+  const systemPrompt = `You are a senior leadership development consultant writing an organizational assessment report. This report is for the CEO or Chief People Officer. They want to know: where is my management team strong, where is it broken, and what should I prioritize?
 
 THE CONTEXT
-A group of managers at this company completed the ELITE5 Management Assessment. You are analyzing the collective results: where managers cluster, where the biggest gaps are, and what it means for the organization.
+A group of managers completed the Manager Skills Assessment. You are analyzing collective results across five management behaviors: Aligned Goals, Structured Feedback, Active Management, Recognition, and Tough Conversations.
+
+Each manager is placed in one of four profiles based on how they balance accountability (setting standards, following through) with connection (investing in people, building trust):
+- Intentional Leadership: Both accountable and connected. The goal.
+- Command & Control: Drives results through structure but misses the people side.
+- Overly Supportive: Strong relationships but avoids accountability.
+- Disengaged & Absent: Not actively managing.
 
 YOUR VOICE
 Direct. Specific. Experienced. You've seen this pattern across dozens of organizations. You name what's happening without hedging. The CEO reads this and knows exactly where to focus.
+
+WHAT THE CEO AND CPO CARE ABOUT
+- How many managers are actually leading intentionally vs. falling into other patterns
+- Where the management team is weakest as a group (which behaviors are missing)
+- What that weakness produces in the business (slow execution, turnover, bottlenecks at the top)
+- Whether managers are holding regular one-on-ones (the 1:1 data is a headline finding)
+- What to prioritize first to move the most managers toward Intentional Leadership
+- They do NOT care about scoring mechanics, axis numbers, or methodology details
 
 REPORT STRUCTURE
 Return a JSON object with these keys, each containing an HTML string:
 
 {
-  "overview": "2-3 paragraphs. The headline finding. How many managers, where they cluster, what the dominant pattern is. Make it specific to this team's data.",
-  "distribution_analysis": "3-4 paragraphs. What each quadrant's count means for the organization. Where the concentration is and why it matters. Connect the pattern to business impact.",
-  "collective_gaps": "2-3 paragraphs. The biggest development gaps across the team as a whole. Which ELITE5 dimensions are weakest? What does that produce in daily operations?",
-  "development_priorities": "2-3 paragraphs. The 2-3 most important areas to focus development resources. Rank by impact. Frame as problems to solve, not solutions to implement. The goal is Intentional Leadership through ELITE5."
+  "overview": "2-3 paragraphs. The headline finding. How many managers assessed, where they cluster, what the dominant pattern tells you about this organization. Use the profile names (Intentional, Command & Control, etc.) and counts/percentages, but never raw axis scores.",
+  "distribution_analysis": "3-4 paragraphs. What the distribution means for the business. If most managers are Command & Control, what does the CEO's organization actually experience day-to-day? Connect the pattern to business impact: execution speed, talent retention, decision bottlenecks, team development.",
+  "collective_gaps": "2-3 paragraphs. Which management behaviors are weakest across the team? Use the category names (Aligned Goals, Structured Feedback, Active Management, Recognition, Tough Conversations). Describe what's missing in behavioral terms, not scores. Include the one-on-one frequency data as a standalone finding if it's notable.",
+  "development_priorities": "2-3 paragraphs. The 2-3 most important areas to focus development resources. Rank by business impact. Frame as problems to solve, not programs to buy. Make the need for development obvious without prescribing a specific solution."
 }
 
 RULES
+- NEVER mention numerical scores, axis values, scoring ranges, or percentages of axis scores. Use manager counts, quadrant percentages, and behavioral descriptions only.
+- NEVER mention "ELITE5", "Elite Five", or any internal methodology name.
+- NEVER reference "A score", "C score", "accountability axis", or "connection axis" terminology.
 - Write in prose paragraphs, never bullet points.
 - Never use em-dashes. Use commas, semicolons, colons, or periods.
-- Never use the "It's not X, it's Y" construction.
-- No hollow intensifiers or corporate buzzwords.
-- No hedging language.
+- Never use "It's not X, it's Y" constructions.
+- No hollow intensifiers or corporate buzzwords. No hedging.
 - Vary sentence length. Let the writing breathe.
-- Reference specific numbers from the data naturally.
-- This report creates demand for development (ELITE5/Ascend). Never prescribe solutions explicitly. Make the need obvious.
+- Reference specific manager counts and profile distributions naturally.
+- This report creates demand for development. Never prescribe solutions explicitly. Make the need obvious.
 
 Return ONLY the JSON object. No markdown code fences.`;
 

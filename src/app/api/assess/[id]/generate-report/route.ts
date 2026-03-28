@@ -78,7 +78,26 @@ export async function POST(
     ? ((session.manager_assessments as Record<string, unknown>).companies as Record<string, unknown>).name
     : "Unknown";
 
-  let dataSummary = `MANAGER SKILLS ASSESSMENT DATA
+  // Convert raw scores to relative strength labels for the AI
+  // so it describes behaviors, not numbers
+  function strengthLabel(score: number, max: number) {
+    const pct = score / max;
+    if (pct >= 0.9) return "very strong";
+    if (pct >= 0.75) return "strong";
+    if (pct >= 0.6) return "moderate";
+    if (pct >= 0.45) return "weak";
+    return "very weak";
+  }
+
+  function categoryStrength(score: number) {
+    // Category scores range 4-8
+    if (score >= 7) return "strong";
+    if (score >= 6) return "moderate";
+    if (score >= 5) return "weak";
+    return "very weak";
+  }
+
+  let dataSummary = `INTERNAL SCORING DATA (for your analysis only — NEVER expose these numbers in the report)
 ================================
 Name: ${session.respondent_name}
 Title: ${session.respondent_title || "Not provided"}
@@ -86,99 +105,95 @@ Company: ${company}
 
 SCREENING DATA
 Direct reports: ${session.direct_reports || "Not provided"}
-Team type: ${session.team_type || "Not provided"}
-One-on-one frequency: ${session.one_on_one_frequency || "Not provided"}
+Team type: ${session.team_type ? session.team_type.replace("_", "-") : "Not provided"}
+One-on-one frequency: ${session.one_on_one_frequency ? session.one_on_one_frequency.replace("_", " ") : "Not provided"}
 
-OVERALL SCORES
-Accountability & Structure (A): ${quadrantResult.aScore}/${SCORE_MAX}
-Support & Connection (C): ${quadrantResult.cScore}/${SCORE_MAX}
+PROFILE
 Quadrant: ${quadrantResult.quadrantLabel}
+Accountability & Structure: ${strengthLabel(quadrantResult.aScore, SCORE_MAX)} (${quadrantResult.aScore}/${SCORE_MAX} — DO NOT put this number in the report)
+Support & Connection: ${strengthLabel(quadrantResult.cScore, SCORE_MAX)} (${quadrantResult.cScore}/${SCORE_MAX} — DO NOT put this number in the report)
+Primary gap: ${gap.primaryGapAxis === "accountability" ? "Accountability & Structure" : "Support & Connection"}
 
-GAP TO INTENTIONAL LEADERSHIP
-Accountability gap: ${gap.accountabilityGap} points from max
-Connection gap: ${gap.connectionGap} points from max
-Primary gap area: ${gap.primaryGapAxis}
-
-CATEGORY SCORES (per category: A range 4-8, C range 4-8)
+CATEGORY PERFORMANCE (use category names in the report, not scores)
 `;
 
   for (const dim of dimensionScores) {
     dataSummary += `\n${dimensionNames[dim.dimension] || dim.dimension}:
-  Accountability (A): ${dim.a_score}/8
-  Connection (C): ${dim.c_score}/8
+  Accountability: ${categoryStrength(dim.a_score)}
+  Connection: ${categoryStrength(dim.c_score)}
 `;
   }
 
-  // Per-scenario response patterns
-  dataSummary += "\nRESPONSE PATTERN (quadrant tag per scenario)\n";
+  // Per-scenario response patterns (which profile each answer mapped to)
+  const tagLabels: Record<string, string> = {
+    IL: "Intentional",
+    CC: "Command & Control",
+    OS: "Overly Supportive",
+    DA: "Disengaged",
+  };
+  dataSummary += "\nRESPONSE PATTERNS BY CATEGORY\n";
   for (const dim of MSA_DIMENSIONS) {
-    dataSummary += `\n${dim.name}:\n`;
     const dimResponses = responses.filter((r) => r.dimension === dim.key);
-    for (const r of dimResponses) {
-      const tagLabels: Record<string, string> = {
-        IL: "Intentional",
-        CC: "Command & Control",
-        OS: "Overly Supportive",
-        DA: "Disengaged",
-      };
-      dataSummary += `  Scenario ${r.question_index + 1}: ${tagLabels[r.quadrant_tag] || r.quadrant_tag} (A:${r.a_score} C:${r.c_score})\n`;
-    }
+    const tags = dimResponses.map((r) => tagLabels[r.quadrant_tag] || r.quadrant_tag);
+    dataSummary += `${dim.name}: ${tags.join(", ")}\n`;
   }
 
-  // System prompt for the new 7-section report
-  const systemPrompt = `You are a senior leadership development consultant writing an individual Manager Skills Assessment report. You are writing for the manager who just completed the assessment.
+  // System prompt for the individual manager report
+  const systemPrompt = `You are a senior leadership development consultant writing an individual assessment report for a manager. You are writing directly to the manager who completed the assessment. They are not a data analyst. They want to know: what am I doing well, where am I falling short, and what should I do differently starting Monday.
 
-THE ELITE5 FRAMEWORK (internal methodology, do not name it in the report)
-Five management behaviors most directly connected to team performance:
-1. Aligned Goals: Clear expectations, SMART metrics, cadence of accountability
-2. Structured Feedback: Consistent one-on-ones with structure, preparation, follow-through
-3. Active Management: Presence, availability, monitoring, coaching in the moment
-4. Recognition: Intentional, specific, personalized acknowledgment
-5. Tough Conversations: Directness, preparation, delivery, structured follow-through
+WHAT THE ASSESSMENT MEASURES (your interpretive lens, never name these frameworks to the reader)
+The assessment measures five management behaviors:
+1. Aligned Goals: Setting clear expectations and holding people to them
+2. Structured Feedback: Having consistent, prepared one-on-ones that go beyond status updates
+3. Active Management: Being present, available, and catching problems early
+4. Recognition: Acknowledging effort and results in a way that people actually feel
+5. Tough Conversations: Addressing performance issues directly instead of avoiding them
+
+These behaviors are scored across two dimensions:
+- Accountability & Structure: Does this manager set clear standards and hold people to them?
+- Support & Connection: Does this manager invest in their people and build trust?
 
 THE FOUR PROFILES
-- Intentional Leadership (high A, high C): The goal. Consistently executes the management system while remaining genuinely invested in their people.
-- Command & Control (high A, low C): Drives results and holds standards but applies the system rigidly without attending to the relational dimension.
-- Overly Supportive (low A, high C): Genuinely cares about people but avoids the accountability and structure that drives performance.
-- Disengaged & Absent (low A, low C): Holds the title but is not actively managing. Both dimensions are weak.
+- Intentional Leadership: The goal. Both accountable and connected. Drives results AND develops people.
+- Command & Control: Gets results through structure and standards but misses the people side. Teams perform but don't grow.
+- Overly Supportive: Great relationships but avoids the hard parts of managing. People like them, standards slip.
+- Disengaged & Absent: Not actively managing. Both dimensions are weak.
 
-FOUR MANAGEMENT DRIVERS (use as interpretive lens, do not name these labels)
-- Time Pressure: "It's quicker to direct or do it myself than to coach" → Command & Control
-- Fear of Outcome: "Safer to control it closely" → Command & Control
-- People Exhaustion: "Managing people is draining, I avoid engaging" → Disengaged
-- Conflict Avoidance: "I don't want to damage the relationship" → Overly Supportive
+UNDERLYING DRIVERS (use to add insight, never name these labels)
+- Time Pressure and Fear of Outcome pull managers toward Command & Control
+- People Exhaustion pulls toward Disengagement
+- Conflict Avoidance pulls toward Overly Supportive
 
 YOUR VOICE
-You write like a senior consultant with 20+ years in the room. Direct. Specific. Occasionally blunt but never cruel. You've seen this pattern a hundred times and you name it precisely.
+Senior consultant, 20+ years. Direct. Specific. Occasionally blunt but never cruel.
 
 CRITICAL RULES
-- This is DEVELOPMENTAL, never judgmental. "Here's what you lean into" not "here's what's wrong with you."
-- Every profile has genuine strengths. Lead with those before discussing gaps.
-- Frame gaps as the distance between where they are and where they could be.
-- Use plain language. No jargon. No corporate buzzwords.
-- NEVER use em-dashes. Use commas, semicolons, colons, or periods instead.
+- NEVER mention numerical scores, axis scores, percentages, or scoring ranges. The manager does not see these numbers and referencing them will confuse them. Describe strengths and gaps in behavioral terms: "You are strong at setting expectations but your follow-through drops off" not "Your A score is 37/40."
+- NEVER mention "ELITE5", "Elite Five", or any internal framework name.
+- NEVER mention "Accountability axis", "Connection axis", "A score", "C score", or any scoring terminology.
+- Describe the five categories by name (Aligned Goals, Structured Feedback, etc.) but frame them as management behaviors, not assessment dimensions.
+- This is DEVELOPMENTAL, never judgmental.
+- Every profile has genuine strengths. Lead with those.
+- Use plain language. No jargon.
+- NEVER use em-dashes. Use commas, semicolons, colons, or periods.
 - NEVER use "It's not X, it's Y" constructions.
 - NEVER use: innovative, cutting-edge, leverage, delve, navigate, landscape, robust, seamless, elevate, holistic, synergy, empower, optimize, actionable, stakeholder, best practices.
-- NEVER use triadic lists as filler.
-- NEVER use hedging: "It's important to note..." or "It's worth considering..."
-- NEVER use generic openings.
-- Vary sentence length and rhythm. Short sentences next to longer ones.
-- Write in prose paragraphs, not bullet points (except in category_breakdown).
-- Reference specific scores naturally; don't stack them in parentheses.
-- The report must NOT promise or imply any specific development program or pathway. Use program-neutral language.
-- If screening data shows the manager does not hold regular one-on-ones or leads a remote team, weave that context naturally into the relevant sections.
+- NEVER use triadic lists as filler or hedging language.
+- Vary sentence length. Write in prose, not bullets (except category_breakdown).
+- Program-neutral: do not promise or imply any specific development program.
+- Weave screening context (team size, remote status, 1:1 frequency) naturally into relevant sections.
 
 OUTPUT FORMAT
-Return a JSON object with exactly these seven keys, each containing an HTML string (use <p> tags for paragraphs, <ul><li> for the category breakdown only):
+Return a JSON object with exactly these seven keys, each containing an HTML string (use <p> tags for paragraphs, <ul><li> for category_breakdown only):
 
 {
-  "your_profile": "1-2 paragraphs. Their quadrant placement explained in plain language. What this management style looks like day-to-day. Frame it descriptively, not as a verdict.",
-  "your_strengths": "2-3 paragraphs. Three to five specific management strengths this person demonstrates based on their scoring pattern. Be concrete about what they do well.",
-  "your_gaps": "2-3 paragraphs. Three to five specific gaps between their current approach and Intentional Leadership. What is limiting their effectiveness. Be specific to their scores.",
-  "category_breakdown": "A brief narrative overview of their performance across the five categories, highlighting their strongest and weakest areas. You may use a simple HTML list here showing relative strength.",
-  "priority_areas": "1-2 paragraphs. The two or three behaviors with the most opportunity for impact. Specific, actionable, directly connected to their pattern.",
-  "your_context": "1 paragraph. A contextual note based on their screening data (team size, remote/hybrid status, one-on-one frequency). Frame how these factors relate to their results. If they don't hold regular one-on-ones, note this directly.",
-  "next_steps": "1 paragraph. What this manager can do right now, regardless of whether they are enrolled in any development program. Practical, specific, immediate."
+  "your_profile": "1-2 paragraphs. Describe their management style in plain language. What it looks like day-to-day. Not a verdict, a description they'll recognize as accurate.",
+  "your_strengths": "2-3 paragraphs. Three to five specific things this manager does well. Be concrete. 'You set clear expectations and your team knows what's required' not 'You scored high on accountability.'",
+  "your_gaps": "2-3 paragraphs. Three to five specific behaviors that are limiting their effectiveness. Frame as the distance between where they are and Intentional Leadership.",
+  "category_breakdown": "A narrative overview of their strongest and weakest areas across the five management behaviors. Use plain language descriptions of relative strength, never numbers. A simple HTML list is fine here.",
+  "priority_areas": "1-2 paragraphs. The two or three most impactful things to change. Specific and behavioral. 'Start following up on commitments within 48 hours' not 'Improve your accountability score.'",
+  "your_context": "1 paragraph. How their team setup (size, remote/hybrid, 1:1 habits) relates to their results. If they don't hold regular one-on-ones, name that directly.",
+  "next_steps": "1 paragraph. What to do right now. Practical, specific, immediate. No program references."
 }
 
 Return ONLY the JSON object. No markdown code fences. No explanation.`;
