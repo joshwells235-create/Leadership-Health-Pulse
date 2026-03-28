@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import ScatterPlot from "@/components/scatter-plot";
 import { QUADRANT_LABELS, type Quadrant } from "@/lib/quadrant-scoring";
@@ -60,6 +60,7 @@ interface CompanyData {
 
 export default function CompanyDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const companyId = params.id as string;
 
   const [company, setCompany] = useState<CompanyData | null>(null);
@@ -72,6 +73,8 @@ export default function CompanyDetailPage() {
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [creatingAssessment, setCreatingAssessment] = useState(false);
+  const [showDeleteCompany, setShowDeleteCompany] = useState(false);
+  const [deletingCompany, setDeletingCompany] = useState(false);
 
   const assessment = assessments.length > 0 ? assessments[0] : null;
 
@@ -171,6 +174,24 @@ export default function CompanyDetailPage() {
     setCreatingAssessment(false);
   }
 
+  async function handleDeleteCompany() {
+    setDeletingCompany(true);
+    try {
+      const res = await fetch(`/api/admin/companies/${companyId}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        router.push("/admin");
+      } else {
+        const data = await res.json();
+        alert(`Error: ${data.error || "Failed to delete company"}`);
+      }
+    } catch {
+      alert("Failed to delete company.");
+    }
+    setDeletingCompany(false);
+  }
+
   if (loading) {
     return <p className="text-navy/40 py-10 text-center">Loading...</p>;
   }
@@ -232,6 +253,12 @@ export default function CompanyDetailPage() {
               .filter(Boolean)
               .join(" · ")}
           </p>
+          <button
+            onClick={() => setShowDeleteCompany(true)}
+            className="mt-2 text-xs text-magenta/60 hover:text-magenta"
+          >
+            Delete Company
+          </button>
         </div>
         {assessment && (
           <div className="flex gap-3">
@@ -253,6 +280,34 @@ export default function CompanyDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Company Confirmation */}
+      {showDeleteCompany && (
+        <div className="mb-6 p-4 bg-magenta/5 border border-magenta/20 rounded-md">
+          <p className="text-sm text-navy font-medium">
+            Delete {company.name} and all associated data?
+          </p>
+          <p className="text-xs text-navy/60 mt-1">
+            This will permanently remove all assessments, sessions, reports,
+            surveys, and leads for this company. This cannot be undone.
+          </p>
+          <div className="flex gap-3 mt-3">
+            <button
+              onClick={handleDeleteCompany}
+              disabled={deletingCompany}
+              className="bg-magenta text-white text-sm font-semibold px-4 py-2 rounded-md disabled:opacity-50"
+            >
+              {deletingCompany ? "Deleting..." : "Yes, Delete Everything"}
+            </button>
+            <button
+              onClick={() => setShowDeleteCompany(false)}
+              className="text-navy/60 text-sm"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* ===== SECTION 1: CEO DIAGNOSTIC ===== */}
       <div className="mb-10">

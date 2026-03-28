@@ -64,3 +64,45 @@ export async function GET(
     assessments: enrichedAssessments,
   });
 }
+
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await verifyAdmin();
+  if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { supabase } = auth;
+  const { id: companyId } = await params;
+
+  // Cascade: delete all assessments (sessions, responses, reports cascade via FK)
+  await supabase
+    .from("manager_assessments")
+    .delete()
+    .eq("company_id", companyId);
+
+  // Cascade: delete all surveys (ratings, open responses, reports cascade via FK)
+  // Also delete associated leads
+  const { data: surveys } = await supabase
+    .from("surveys")
+    .select("id")
+    .eq("company_id", companyId);
+
+  if (surveys && surveys.length > 0) {
+    const surveyIds = surveys.map((s) => s.id);
+    await supabase.from("leads").delete().in("survey_id", surveyIds);
+    await supabase.from("surveys").delete().eq("company_id", companyId);
+  }
+
+  // Delete the company itself
+  const { error } = await supabase
+    .from("companies")
+    .delete()
+    .eq("id", companyId);
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ success: true });
+}
