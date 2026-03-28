@@ -356,103 +356,119 @@ export default function CompanyDetailPage() {
           <>
             {/* Scatter Plot + Distribution */}
             {completedSessions.length > 0 ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                {/* Scatter Plot */}
-                <div className="bg-white rounded-lg border border-navy/10 p-6">
-                  <h3 className="font-semibold text-navy mb-4">
-                    Team Quadrant Map
-                  </h3>
-                  <div className="flex justify-center">
-                    <ScatterPlot
-                      managers={scatterData}
-                      width={420}
-                      height={420}
-                    />
-                  </div>
-                </div>
+              <>
+                {/* PDF-capturable container: grid + report sections */}
+                <div id="org-report-content">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    {/* Scatter Plot */}
+                    <div className="bg-white rounded-lg border border-navy/10 p-6">
+                      <h3 className="font-semibold text-navy mb-4">
+                        Team Quadrant Map
+                      </h3>
+                      <div className="flex justify-center">
+                        <ScatterPlot
+                          managers={scatterData}
+                          width={420}
+                          height={420}
+                        />
+                      </div>
+                    </div>
 
-                {/* Distribution */}
-                <div className="bg-white rounded-lg border border-navy/10 p-6">
-                  <h3 className="font-semibold text-navy mb-4">Distribution</h3>
-                  <div className="space-y-4">
-                    {Object.entries(distribution).map(([quadrant, count]) => {
-                      const pct =
-                        completedSessions.length > 0
-                          ? Math.round(
-                              (count / completedSessions.length) * 100
-                            )
-                          : 0;
-                      const colors: Record<string, string> = {
-                        intentional: "#007efa",
-                        command_control: "#F5A623",
-                        overly_supportive: "#F5A623",
-                        absent: "#EA0C67",
-                      };
-                      return (
-                        <div key={quadrant}>
-                          <div className="flex justify-between text-sm mb-1">
-                            <span className="font-medium text-navy">
-                              {QUADRANT_LABELS[quadrant as Quadrant]}
-                            </span>
-                            <span className="text-navy/50">
-                              {count} ({pct}%)
-                            </span>
+                    {/* Distribution */}
+                    <div className="bg-white rounded-lg border border-navy/10 p-6">
+                      <h3 className="font-semibold text-navy mb-4">Distribution</h3>
+                      <div className="space-y-4">
+                        {Object.entries(distribution).map(([quadrant, count]) => {
+                          const pct =
+                            completedSessions.length > 0
+                              ? Math.round(
+                                  (count / completedSessions.length) * 100
+                                )
+                              : 0;
+                          const colors: Record<string, string> = {
+                            intentional: "#007efa",
+                            command_control: "#F5A623",
+                            overly_supportive: "#F5A623",
+                            absent: "#EA0C67",
+                          };
+                          return (
+                            <div key={quadrant}>
+                              <div className="flex justify-between text-sm mb-1">
+                                <span className="font-medium text-navy">
+                                  {QUADRANT_LABELS[quadrant as Quadrant]}
+                                </span>
+                                <span className="text-navy/50">
+                                  {count} ({pct}%)
+                                </span>
+                              </div>
+                              <div className="w-full bg-navy/5 rounded-full h-3">
+                                <div
+                                  className="h-3 rounded-full transition-all"
+                                  style={{
+                                    width: `${pct}%`,
+                                    backgroundColor: colors[quadrant],
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="mt-8 pt-4 border-t border-navy/10">
+                        <div className="grid grid-cols-2 gap-4 text-center">
+                          <div>
+                            <p className="text-2xl font-bold text-navy">
+                              {completedSessions.length}
+                            </p>
+                            <p className="text-xs text-navy/50">Completed</p>
                           </div>
-                          <div className="w-full bg-navy/5 rounded-full h-3">
-                            <div
-                              className="h-3 rounded-full transition-all"
-                              style={{
-                                width: `${pct}%`,
-                                backgroundColor: colors[quadrant],
-                              }}
-                            />
+                          <div>
+                            <p className="text-2xl font-bold text-navy">
+                              {
+                                sessions.filter((s) => s.status === "in_progress")
+                                  .length
+                              }
+                            </p>
+                            <p className="text-xs text-navy/50">In Progress</p>
                           </div>
                         </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-8 pt-4 border-t border-navy/10">
-                    <div className="grid grid-cols-2 gap-4 text-center">
-                      <div>
-                        <p className="text-2xl font-bold text-navy">
-                          {completedSessions.length}
-                        </p>
-                        <p className="text-xs text-navy/50">Completed</p>
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-navy">
-                          {
-                            sessions.filter((s) => s.status === "in_progress")
-                              .length
-                          }
-                        </p>
-                        <p className="text-xs text-navy/50">In Progress</p>
                       </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white rounded-lg border border-navy/10 p-10 text-center mb-8">
-                <p className="text-navy/40">
-                  No completed assessments yet. Share the link with managers to
-                  get started.
-                </p>
-                <p className="text-sm text-navy/30 mt-2 font-mono">
-                  {assessmentLink}
-                </p>
-              </div>
-            )}
 
-            {/* Organizational Report */}
-            {orgReport && (
-              <div className="mb-8" id="org-report-content">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-bold text-navy">
-                    Organizational Report
-                  </h3>
-                  <div className="flex gap-2">
+                  {/* Organizational Report sections (inside the PDF container) */}
+                  {orgReport && (
+                    <div className="space-y-6">
+                      {[
+                        { title: "Overview", key: "overview" },
+                        { title: "Distribution Analysis", key: "distribution_analysis" },
+                        { title: "Collective Gaps", key: "collective_gaps" },
+                        { title: "Development Priorities", key: "development_priorities" },
+                      ].map((section) => (
+                        <section
+                          key={section.key}
+                          className="bg-white rounded-lg border border-navy/10 p-8"
+                        >
+                          <h4 className="text-lg font-bold text-navy mb-4">
+                            {section.title}
+                          </h4>
+                          <div
+                            className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
+                            dangerouslySetInnerHTML={{
+                              __html:
+                                orgReport[section.key as keyof OrgReportContent],
+                            }}
+                          />
+                        </section>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Action buttons (outside the PDF container) */}
+                {orgReport && (
+                  <div className="flex justify-end gap-2 mt-4 mb-8">
                     <button
                       onClick={handleDownloadOrgPDF}
                       disabled={isDownloadingPDF}
@@ -468,31 +484,17 @@ export default function CompanyDetailPage() {
                       {generatingOrgReport ? "Regenerating..." : "Regenerate"}
                     </button>
                   </div>
-                </div>
-                <div className="space-y-6">
-                  {[
-                    { title: "Overview", key: "overview" },
-                    { title: "Distribution Analysis", key: "distribution_analysis" },
-                    { title: "Collective Gaps", key: "collective_gaps" },
-                    { title: "Development Priorities", key: "development_priorities" },
-                  ].map((section) => (
-                    <section
-                      key={section.key}
-                      className="bg-white rounded-lg border border-navy/10 p-8"
-                    >
-                      <h4 className="text-lg font-bold text-navy mb-4">
-                        {section.title}
-                      </h4>
-                      <div
-                        className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-                        dangerouslySetInnerHTML={{
-                          __html:
-                            orgReport[section.key as keyof OrgReportContent],
-                        }}
-                      />
-                    </section>
-                  ))}
-                </div>
+                )}
+              </>
+            ) : (
+              <div className="bg-white rounded-lg border border-navy/10 p-10 text-center mb-8">
+                <p className="text-navy/40">
+                  No completed assessments yet. Share the link with managers to
+                  get started.
+                </p>
+                <p className="text-sm text-navy/30 mt-2 font-mono">
+                  {assessmentLink}
+                </p>
               </div>
             )}
 
