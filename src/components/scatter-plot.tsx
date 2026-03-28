@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { MIDPOINT, SCORE_MIN, SCORE_MAX } from "@/lib/quadrant-scoring";
+import { useState, useMemo } from "react";
+import { MIDPOINT } from "@/lib/quadrant-scoring";
 
 interface ManagerPoint {
   id: string;
@@ -34,6 +34,12 @@ const QUADRANT_BG_COLORS = {
   absent: "rgba(234, 12, 103, 0.06)",
 };
 
+// Visible plot range — the realistic scoring band.
+// Nobody scores 20/20 or 40/40 in real assessments.
+// This zooms the plot so dots use more of the visual space.
+const PLOT_MIN = 20;
+const PLOT_MAX = 40;
+
 export default function ScatterPlot({
   managers,
   width = 500,
@@ -47,11 +53,9 @@ export default function ScatterPlot({
   const plotWidth = width - padding * 2;
   const plotHeight = height - padding * 2;
 
-  // Convert score (20-40) to pixel position.
-  // MIDPOINT (30) maps to visual center (50%).
-  // Score range: SCORE_MIN (20) to SCORE_MAX (40).
+  // Convert score to pixel position within the visible range
   function scoreToPercent(score: number) {
-    return (score - SCORE_MIN) / (SCORE_MAX - SCORE_MIN);
+    return (score - PLOT_MIN) / (PLOT_MAX - PLOT_MIN);
   }
 
   function toPixelX(score: number) {
@@ -62,9 +66,65 @@ export default function ScatterPlot({
     return padding + (1 - scoreToPercent(score)) * plotHeight;
   }
 
-  // Visual crosshairs at the midpoint (30)
+  // Crosshairs at the midpoint (30)
   const visualMidX = toPixelX(MIDPOINT);
   const visualMidY = toPixelY(MIDPOINT);
+
+  // Detect overlapping dots and apply jitter so all are visible.
+  // Groups managers by their rounded pixel position, then fans them
+  // out in a circle when 2+ dots share the same spot.
+  const jitteredPositions = useMemo(() => {
+    const DOT_RADIUS = 7;
+    const JITTER_DISTANCE = DOT_RADIUS * 2.5; // spacing between overlapping dots
+
+    // Group by grid cell (round to nearest pixel cluster)
+    const groups = new Map<string, string[]>();
+    const basePositions = new Map<string, { px: number; py: number }>();
+
+    for (const m of managers) {
+      const px = toPixelX(m.xScore);
+      const py = toPixelY(m.yScore);
+      basePositions.set(m.id, { px, py });
+
+      // Round to detect overlaps (within DOT_RADIUS pixels = same spot)
+      const gx = Math.round(px / (DOT_RADIUS * 2));
+      const gy = Math.round(py / (DOT_RADIUS * 2));
+      const key = `${gx},${gy}`;
+
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(m.id);
+    }
+
+    // Apply jitter to groups with 2+ dots
+    const result = new Map<string, { px: number; py: number }>();
+    for (const [, ids] of groups) {
+      if (ids.length === 1) {
+        result.set(ids[0], basePositions.get(ids[0])!);
+      } else {
+        // Fan out in a circle around the center point
+        const center = basePositions.get(ids[0])!;
+        const angleStep = (2 * Math.PI) / ids.length;
+        // Scale jitter distance based on count so large groups spread more
+        const distance = Math.min(
+          JITTER_DISTANCE * Math.min(ids.length, 6) * 0.4,
+          plotWidth * 0.08
+        );
+        for (let i = 0; i < ids.length; i++) {
+          const angle = angleStep * i - Math.PI / 2; // start at top
+          result.set(ids[i], {
+            px: center.px + Math.cos(angle) * distance,
+            py: center.py + Math.sin(angle) * distance,
+          });
+        }
+      }
+    }
+    return result;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [managers, plotWidth, plotHeight]);
+
+  // Adaptive dot size based on manager count
+  const dotRadius = managers.length > 25 ? 5 : managers.length > 15 ? 6 : 7;
+  const hoverRadius = dotRadius + 2;
 
   return (
     <div className="relative inline-block">
@@ -140,41 +200,45 @@ export default function ScatterPlot({
             return (
               <circle
                 key={`prev-${m.id}`}
-                cx={toPixelX(prev.xScore)} cy={toPixelY(prev.yScore)} r={6}
+                cx={toPixelX(prev.xScore)} cy={toPixelY(prev.yScore)} r={dotRadius - 1}
                 fill={QUADRANT_COLORS[m.quadrant as keyof typeof QUADRANT_COLORS] || "#101d51"}
                 opacity={0.2} stroke="white" strokeWidth="1"
               />
             );
           })}
 
-        {/* Manager dots */}
-        {managers.map((m) => (
-          <g key={m.id}>
-            <circle
-              cx={toPixelX(m.xScore)} cy={toPixelY(m.yScore)}
-              r={hoveredManager === m.id ? 9 : 7}
-              fill={QUADRANT_COLORS[m.quadrant as keyof typeof QUADRANT_COLORS] || "#101d51"}
-              stroke="white" strokeWidth="2"
-              className="cursor-pointer transition-all duration-150"
-              onMouseEnter={() => setHoveredManager(m.id)}
-              onMouseLeave={() => setHoveredManager(null)}
-            />
-            {hoveredManager === m.id && (
-              <g>
-                <rect
-                  x={toPixelX(m.xScore) - 60} y={toPixelY(m.yScore) - 38}
-                  width="120" height="28" rx="4" fill="#101d51" opacity="0.9"
-                />
-                <text
-                  x={toPixelX(m.xScore)} y={toPixelY(m.yScore) - 20}
-                  textAnchor="middle" fill="white" fontSize="11" fontWeight="500"
-                >
-                  {m.name}
-                </text>
-              </g>
-            )}
-          </g>
-        ))}
+        {/* Manager dots (jittered to prevent overlap) */}
+        {managers.map((m) => {
+          const pos = jitteredPositions.get(m.id);
+          if (!pos) return null;
+          return (
+            <g key={m.id}>
+              <circle
+                cx={pos.px} cy={pos.py}
+                r={hoveredManager === m.id ? hoverRadius : dotRadius}
+                fill={QUADRANT_COLORS[m.quadrant as keyof typeof QUADRANT_COLORS] || "#101d51"}
+                stroke="white" strokeWidth="2"
+                className="cursor-pointer transition-all duration-150"
+                onMouseEnter={() => setHoveredManager(m.id)}
+                onMouseLeave={() => setHoveredManager(null)}
+              />
+              {hoveredManager === m.id && (
+                <g>
+                  <rect
+                    x={pos.px - 60} y={pos.py - 38}
+                    width="120" height="28" rx="4" fill="#101d51" opacity="0.9"
+                  />
+                  <text
+                    x={pos.px} y={pos.py - 20}
+                    textAnchor="middle" fill="white" fontSize="11" fontWeight="500"
+                  >
+                    {m.name}
+                  </text>
+                </g>
+              )}
+            </g>
+          );
+        })}
       </svg>
     </div>
   );

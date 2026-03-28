@@ -70,8 +70,10 @@ const MANAGERS: {
     directReports: 6,
     teamType: "hybrid",
     oneOnOneFreq: "weekly_biweekly",
-    // Strong Intentional leader — mostly IL picks
-    responses: ["IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL"],
+    // Strong Intentional — mostly IL with occasional CC under pressure
+    //                        AG          SF          AM          REC         TC
+    responses: ["IL", "IL", "CC", "IL", "IL", "IL", "IL", "CC", "IL", "IL", "IL", "IL", "IL", "CC", "IL", "IL", "IL", "IL", "IL", "IL"],
+    // A:40 C:37 → Intentional
   },
   {
     name: "Kevin Hartwell",
@@ -81,8 +83,10 @@ const MANAGERS: {
     directReports: 8,
     teamType: "in_person",
     oneOnOneFreq: "weekly_biweekly",
-    // Command & Control — high accountability, low connection
-    responses: ["CC", "CC", "CC", "CC", "CC", "CC", "CC", "CC", "CC", "CC", "CC", "CC", "CC", "IL", "CC", "CC", "CC", "CC", "CC", "CC"],
+    // Command & Control dominant — drives results but lacks warmth
+    //                        AG          SF          AM          REC         TC
+    responses: ["CC", "CC", "IL", "CC", "CC", "CC", "IL", "CC", "CC", "CC", "CC", "IL", "CC", "CC", "CC", "IL", "CC", "CC", "CC", "CC"],
+    // A:40 C:24 → Command & Control
   },
   {
     name: "Priya Sharma",
@@ -92,8 +96,10 @@ const MANAGERS: {
     directReports: 5,
     teamType: "hybrid",
     oneOnOneFreq: "monthly",
-    // Overly Supportive — high connection, low accountability
-    responses: ["OS", "OS", "IL", "OS", "OS", "OS", "OS", "OS", "OS", "OS", "OS", "OS", "OS", "OS", "IL", "OS", "OS", "OS", "OS", "OS"],
+    // Overly Supportive — connects well, avoids accountability
+    //                        AG          SF          AM          REC         TC
+    responses: ["OS", "IL", "OS", "OS", "OS", "IL", "OS", "OS", "OS", "OS", "IL", "OS", "OS", "IL", "OS", "OS", "OS", "OS", "IL", "OS"],
+    // A:25 C:40 → Overly Supportive
   },
   {
     name: "Tom Nguyen",
@@ -103,8 +109,10 @@ const MANAGERS: {
     directReports: 4,
     teamType: "remote",
     oneOnOneFreq: "occasional",
-    // Disengaged — low on both axes
-    responses: ["DA", "DA", "DA", "DA", "DA", "DA", "DA", "DA", "DA", "DA", "DA", "DA", "DA", "DA", "DA", "DA", "DA", "DA", "DA", "DA"],
+    // Disengaged — mostly passive, occasional CC when forced
+    //                        AG          SF          AM          REC         TC
+    responses: ["DA", "DA", "CC", "DA", "DA", "DA", "DA", "CC", "DA", "DA", "DA", "CC", "DA", "DA", "DA", "DA", "DA", "CC", "DA", "DA"],
+    // A:28 C:20 → Absent (but not extreme corner)
   },
   {
     name: "Rachel Kim",
@@ -114,8 +122,10 @@ const MANAGERS: {
     directReports: 7,
     teamType: "hybrid",
     oneOnOneFreq: "weekly_biweekly",
-    // Near intentional, a few OS pulls
-    responses: ["IL", "IL", "IL", "OS", "IL", "IL", "IL", "OS", "IL", "IL", "IL", "IL", "IL", "OS", "IL", "IL", "IL", "IL", "OS", "IL"],
+    // Near intentional — strong but pulled OS on recognition and tough convos
+    //                        AG          SF          AM          REC         TC
+    responses: ["IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "IL", "OS", "IL", "OS", "IL", "IL", "IL", "OS", "IL"],
+    // A:37 C:40 → Intentional
   },
   {
     name: "James Okafor",
@@ -125,8 +135,10 @@ const MANAGERS: {
     directReports: 10,
     teamType: "in_person",
     oneOnOneFreq: "monthly",
-    // Leans CC with some IL
-    responses: ["CC", "IL", "CC", "CC", "IL", "CC", "CC", "IL", "CC", "CC", "CC", "IL", "CC", "CC", "IL", "CC", "CC", "IL", "CC", "CC"],
+    // CC with some IL — methodical but misses the relational piece
+    //                        AG          SF          AM          REC         TC
+    responses: ["CC", "IL", "CC", "CC", "IL", "CC", "CC", "CC", "IL", "CC", "CC", "IL", "CC", "CC", "DA", "CC", "CC", "IL", "CC", "CC"],
+    // A:38 C:25 → Command & Control
   },
   {
     name: "Megan Calloway",
@@ -136,8 +148,10 @@ const MANAGERS: {
     directReports: 6,
     teamType: "in_person",
     oneOnOneFreq: "weekly_biweekly",
-    // OS leaning with some IL
-    responses: ["OS", "IL", "OS", "OS", "IL", "OS", "IL", "OS", "OS", "IL", "OS", "OS", "IL", "OS", "IL", "OS", "OS", "IL", "OS", "OS"],
+    // OS leaning — great people person, avoids tough conversations
+    //                        AG          SF          AM          REC         TC
+    responses: ["IL", "OS", "OS", "IL", "OS", "IL", "OS", "OS", "IL", "OS", "OS", "OS", "IL", "OS", "OS", "IL", "OS", "OS", "DA", "OS"],
+    // A:27 C:37 → Overly Supportive
   },
   {
     name: "Derek Lawson",
@@ -147,8 +161,10 @@ const MANAGERS: {
     directReports: 5,
     teamType: "hybrid",
     oneOnOneFreq: "occasional",
-    // Mixed — some DA, some CC, some IL
-    responses: ["IL", "DA", "CC", "DA", "IL", "DA", "CC", "IL", "DA", "CC", "IL", "DA", "CC", "IL", "DA", "CC", "IL", "DA", "CC", "DA"],
+    // Mixed — borderline, inconsistent, leaning disengaged
+    //                        AG          SF          AM          REC         TC
+    responses: ["IL", "DA", "CC", "OS", "DA", "CC", "IL", "DA", "OS", "CC", "DA", "IL", "DA", "CC", "OS", "DA", "IL", "DA", "OS", "DA"],
+    // A:28 C:28 → Absent (but near center)
   },
 ];
 
