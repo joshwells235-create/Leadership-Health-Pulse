@@ -3,23 +3,32 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import { QUADRANT_LABELS_MANAGER, MIDPOINT, type Quadrant } from "@/lib/quadrant-scoring";
+import {
+  QUADRANT_LABELS_MANAGER,
+  SCORE_MIN,
+  SCORE_MAX,
+  MIDPOINT,
+  type Quadrant,
+} from "@/lib/quadrant-scoring";
 import { generatePDF } from "@/lib/generate-pdf";
 
 interface SessionData {
   id: string;
   respondent_name: string;
   quadrant: Quadrant;
-  x_score: number;
-  y_score: number;
+  x_score: number; // Support & Connection (20-40)
+  y_score: number; // Accountability & Structure (20-40)
   completed_at: string;
 }
 
 interface ReportContent {
-  management_style: string;
-  hinders_performance: string;
-  critical_gaps: string;
-  focus_areas: string;
+  your_profile: string;
+  your_strengths: string;
+  your_gaps: string;
+  category_breakdown: string;
+  priority_areas: string;
+  your_context: string;
+  next_steps: string;
 }
 
 export default function ManagerAssessmentResult() {
@@ -35,7 +44,6 @@ export default function ManagerAssessmentResult() {
 
   useEffect(() => {
     async function loadResult() {
-      // Load session
       const { data: sess } = await supabase
         .from("manager_sessions")
         .select("*")
@@ -74,19 +82,15 @@ export default function ManagerAssessmentResult() {
         const res = await fetch(`/api/assess/${sessionId}/generate-report`, {
           method: "POST",
         });
-
         if (!res.ok) throw new Error("Report generation failed");
-
         const data = await res.json();
         setReport(data.report as ReportContent);
       } catch (err) {
         console.error("Report generation error:", err);
         setError("Failed to generate your report. Please try again.");
       }
-
       setGenerating(false);
     }
-
     loadResult();
   }, [sessionId]);
 
@@ -96,7 +100,7 @@ export default function ManagerAssessmentResult() {
       const name = session?.respondent_name?.replace(/\s+/g, "-") || "Manager";
       await generatePDF(
         "manager-report-content",
-        `ELITE5-Assessment-${name}.pdf`
+        `MSA-Report-${name}.pdf`
       );
     } catch (err) {
       console.error("PDF download failed:", err);
@@ -154,13 +158,33 @@ export default function ManagerAssessmentResult() {
 
   const quadrantColor = quadrantColors[session.quadrant] || "#101d51";
 
+  // Map score (20-40) to 0-100% for mini chart positioning
+  function scoreToPercent(score: number) {
+    return ((score - SCORE_MIN) / (SCORE_MAX - SCORE_MIN)) * 100;
+  }
+  const dotLeft = scoreToPercent(session.x_score);
+  const dotBottom = scoreToPercent(session.y_score);
+
+  // Midpoint position in the mini chart
+  const midPercent = ((MIDPOINT - SCORE_MIN) / (SCORE_MAX - SCORE_MIN)) * 100;
+
+  const reportSections = [
+    { key: "your_profile", title: "Your Profile" },
+    { key: "your_strengths", title: "Your Strengths" },
+    { key: "your_gaps", title: "Your Gaps" },
+    { key: "category_breakdown", title: "Category Breakdown" },
+    { key: "priority_areas", title: "Priority Development Areas" },
+    { key: "your_context", title: "Your Context" },
+    { key: "next_steps", title: "Next Steps" },
+  ];
+
   return (
     <main className="flex-1 flex flex-col items-center px-4 py-12">
       <div className="max-w-3xl w-full" id="manager-report-content">
         {/* Header */}
         <div className="text-center mb-10">
           <h1 className="text-3xl font-bold text-navy">
-            Your ELITE5 Assessment
+            Your Assessment Results
           </h1>
           <p className="mt-2 text-navy/60">{session.respondent_name}</p>
         </div>
@@ -176,95 +200,63 @@ export default function ManagerAssessmentResult() {
         </div>
 
         {/* Mini Quadrant Visual */}
-        {(() => {
-          // Map score so MIDPOINT lands at 50% visually
-          function scoreToPercent(score: number) {
-            if (score <= MIDPOINT) {
-              return ((score - 1) / (MIDPOINT - 1)) * 50;
-            }
-            return 50 + ((score - MIDPOINT) / (5 - MIDPOINT)) * 50;
-          }
-          const dotLeft = scoreToPercent(session.x_score);
-          const dotBottom = scoreToPercent(session.y_score);
-          return (
-            <div className="flex justify-center mb-10">
-              <div className="relative w-64 h-64 border-2 border-navy/20 rounded-lg overflow-hidden">
-                {/* Quadrant labels */}
-                <div className="absolute top-2 left-2 text-[10px] text-navy/40 font-medium">
-                  Results-Driven
-                </div>
-                <div className="absolute top-2 right-2 text-[10px] text-blue font-medium">
-                  Intentional
-                </div>
-                <div className="absolute bottom-2 left-2 text-[10px] text-navy/40 font-medium">
-                  Emerging
-                </div>
-                <div className="absolute bottom-2 right-2 text-[10px] text-navy/40 font-medium">
-                  People-First
-                </div>
-                {/* Crosshairs at visual center */}
-                <div className="absolute top-0 bottom-0 left-1/2 w-px bg-navy/10" />
-                <div className="absolute left-0 right-0 top-1/2 h-px bg-navy/10" />
-                {/* Dot */}
-                <div
-                  className="absolute w-4 h-4 rounded-full border-2 border-white shadow-md"
-                  style={{
-                    backgroundColor: quadrantColor,
-                    left: `${dotLeft}%`,
-                    bottom: `${dotBottom}%`,
-                    transform: "translate(-50%, 50%)",
-                  }}
-                />
-              </div>
+        <div className="flex justify-center mb-10">
+          <div className="relative w-64 h-64 border-2 border-navy/20 rounded-lg overflow-hidden">
+            {/* Quadrant labels */}
+            <div className="absolute top-2 left-2 text-[10px] text-navy/40 font-medium">
+              Results-Driven
             </div>
-          );
-        })()}
+            <div className="absolute top-2 right-2 text-[10px] text-blue font-medium">
+              Intentional
+            </div>
+            <div className="absolute bottom-2 left-2 text-[10px] text-navy/40 font-medium">
+              Emerging
+            </div>
+            <div className="absolute bottom-2 right-2 text-[10px] text-navy/40 font-medium">
+              People-First
+            </div>
+            {/* Crosshairs at midpoint */}
+            <div
+              className="absolute top-0 bottom-0 w-px bg-navy/10"
+              style={{ left: `${midPercent}%` }}
+            />
+            <div
+              className="absolute left-0 right-0 h-px bg-navy/10"
+              style={{ top: `${100 - midPercent}%` }}
+            />
+            {/* Dot */}
+            <div
+              className="absolute w-4 h-4 rounded-full border-2 border-white shadow-md"
+              style={{
+                backgroundColor: quadrantColor,
+                left: `${dotLeft}%`,
+                bottom: `${dotBottom}%`,
+                transform: "translate(-50%, 50%)",
+              }}
+            />
+          </div>
+        </div>
 
         {/* Report Sections */}
         <div className="space-y-8">
-          {/* Management Style */}
-          <section className="bg-white rounded-lg border border-navy/10 p-8">
-            <h2 className="text-xl font-bold text-navy mb-4">
-              Your Management Style
-            </h2>
-            <div
-              className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: report.management_style }}
-            />
-          </section>
-
-          {/* Where It Hinders */}
-          <section className="bg-white rounded-lg border border-navy/10 p-8">
-            <h2 className="text-xl font-bold text-navy mb-4">
-              Where It Hinders Performance
-            </h2>
-            <div
-              className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: report.hinders_performance }}
-            />
-          </section>
-
-          {/* Critical Gaps */}
-          <section className="bg-white rounded-lg border border-navy/10 p-8">
-            <h2 className="text-xl font-bold text-navy mb-4">
-              Critical Gaps to Intentional Leadership
-            </h2>
-            <div
-              className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: report.critical_gaps }}
-            />
-          </section>
-
-          {/* What to Focus On */}
-          <section className="bg-white rounded-lg border border-navy/10 p-8">
-            <h2 className="text-xl font-bold text-navy mb-4">
-              What to Focus On
-            </h2>
-            <div
-              className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: report.focus_areas }}
-            />
-          </section>
+          {reportSections.map((section) => {
+            const content = report[section.key as keyof ReportContent];
+            if (!content) return null;
+            return (
+              <section
+                key={section.key}
+                className="bg-white rounded-lg border border-navy/10 p-8"
+              >
+                <h2 className="text-xl font-bold text-navy mb-4">
+                  {section.title}
+                </h2>
+                <div
+                  className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: content }}
+                />
+              </section>
+            );
+          })}
         </div>
 
         {/* Download */}

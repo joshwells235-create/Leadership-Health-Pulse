@@ -66,14 +66,27 @@ export async function POST(request: NextRequest) {
     if (s.quadrant) distribution[s.quadrant]++;
   }
 
-  // Calculate aggregate dimension scores
-  const dimensionTotals: Record<string, { sum: number; count: number }> = {};
+  // Calculate aggregate dimension scores (A and C per dimension)
+  const dimensionTotals: Record<string, { a_sum: number; c_sum: number; count: number }> = {};
   for (const r of allResponses || []) {
     if (!dimensionTotals[r.dimension]) {
-      dimensionTotals[r.dimension] = { sum: 0, count: 0 };
+      dimensionTotals[r.dimension] = { a_sum: 0, c_sum: 0, count: 0 };
     }
-    dimensionTotals[r.dimension].sum += r.rating;
+    dimensionTotals[r.dimension].a_sum += r.a_score || 0;
+    dimensionTotals[r.dimension].c_sum += r.c_score || 0;
     dimensionTotals[r.dimension].count += 1;
+  }
+
+  // Aggregate 1:1 frequency data
+  const freqCounts: Record<string, number> = { weekly_biweekly: 0, monthly: 0, occasional: 0, never: 0 };
+  const typeCounts: Record<string, number> = { in_person: 0, hybrid: 0, remote: 0 };
+  for (const s of sessions) {
+    if (s.one_on_one_frequency && freqCounts[s.one_on_one_frequency] !== undefined) {
+      freqCounts[s.one_on_one_frequency]++;
+    }
+    if (s.team_type && typeCounts[s.team_type] !== undefined) {
+      typeCounts[s.team_type]++;
+    }
   }
 
   // Build data summary
@@ -90,35 +103,34 @@ QUADRANT DISTRIBUTION
     dataSummary += `${QUADRANT_LABELS[q as Quadrant]}: ${count} (${pct}%)\n`;
   }
 
-  dataSummary += `\nTEAM AVERAGES BY DIMENSION\n`;
+  dataSummary += `\nCATEGORY AVERAGES (A and C scores per category)\n`;
   for (const [dim, data] of Object.entries(dimensionTotals)) {
-    const avg = (data.sum / data.count).toFixed(2);
-    dataSummary += `${dim.replace(/_/g, " ")}: ${avg}/5.0\n`;
+    const perManager = data.count / sessions.length; // scenarios per manager per dimension
+    const avgA = perManager > 0 ? (data.a_sum / sessions.length).toFixed(1) : "N/A";
+    const avgC = perManager > 0 ? (data.c_sum / sessions.length).toFixed(1) : "N/A";
+    dataSummary += `${dim.replace(/_/g, " ")}: A=${avgA}/8  C=${avgC}/8\n`;
   }
 
-  // Average accountability and supportiveness
-  const accResponses = (allResponses || []).filter(
-    (r) => r.axis === "accountability"
-  );
-  const supResponses = (allResponses || []).filter(
-    (r) => r.axis === "supportiveness"
-  );
-  const avgAcc =
-    accResponses.length > 0
-      ? (
-          accResponses.reduce((s, r) => s + r.rating, 0) / accResponses.length
-        ).toFixed(2)
-      : "N/A";
-  const avgSup =
-    supResponses.length > 0
-      ? (
-          supResponses.reduce((s, r) => s + r.rating, 0) / supResponses.length
-        ).toFixed(2)
-      : "N/A";
+  // Overall averages
+  const totalA = sessions.reduce((s, ses) => s + (ses.y_score || 0), 0);
+  const totalC = sessions.reduce((s, ses) => s + (ses.x_score || 0), 0);
+  const avgA = (totalA / sessions.length).toFixed(1);
+  const avgC = (totalC / sessions.length).toFixed(1);
 
   dataSummary += `\nOVERALL AXIS AVERAGES
-Accountability: ${avgAcc}/5.0
-Supportiveness: ${avgSup}/5.0
+Accountability & Structure: ${avgA}/40
+Support & Connection: ${avgC}/40
+
+ONE-ON-ONE FREQUENCY
+Weekly/bi-weekly: ${freqCounts.weekly_biweekly} (${Math.round((freqCounts.weekly_biweekly / sessions.length) * 100)}%)
+Monthly: ${freqCounts.monthly} (${Math.round((freqCounts.monthly / sessions.length) * 100)}%)
+Occasional: ${freqCounts.occasional} (${Math.round((freqCounts.occasional / sessions.length) * 100)}%)
+No regular 1:1s: ${freqCounts.never} (${Math.round((freqCounts.never / sessions.length) * 100)}%)
+
+TEAM TYPE DISTRIBUTION
+In-person: ${typeCounts.in_person}
+Hybrid: ${typeCounts.hybrid}
+Remote: ${typeCounts.remote}
 
 INDIVIDUAL PLACEMENTS
 `;
@@ -126,7 +138,7 @@ INDIVIDUAL PLACEMENTS
   for (const s of sessions) {
     dataSummary += `${s.respondent_name} (${s.respondent_title || "No title"}): ${
       QUADRANT_LABELS[(s.quadrant as Quadrant) || "absent"]
-    } - S:${s.x_score} A:${s.y_score}\n`;
+    } - A:${s.y_score}/40 C:${s.x_score}/40\n`;
   }
 
   const systemPrompt = `You are a senior leadership development consultant writing an organizational assessment report. This report is for the CEO or Chief People Officer, not individual managers.

@@ -24,17 +24,15 @@ interface ResponseRow {
   dimension: string;
   question_index: number;
   question_text: string;
-  rating: number;
-  axis: string;
+  rating: number | null;
+  axis: string | null;
+  quadrant_tag: string | null;
+  a_score: number | null;
+  c_score: number | null;
 }
 
 interface ReportData {
-  generated_content: {
-    management_style: string;
-    hinders_performance: string;
-    critical_gaps: string;
-    focus_areas: string;
-  };
+  generated_content: Record<string, string>;
   version: number;
 }
 
@@ -174,8 +172,7 @@ export default function AdminSessionDetail() {
               Attempt #{session.attempt_number}
             </span>
             <span className="text-xs text-navy/40">
-              Supportiveness: {session.x_score} | Accountability:{" "}
-              {session.y_score}
+              A: {session.y_score}/40 | C: {session.x_score}/40
             </span>
           </div>
         </div>
@@ -247,7 +244,7 @@ export default function AdminSessionDetail() {
                   {QUADRANT_LABELS[ps.quadrant]}
                 </div>
                 <div className="text-xs text-navy/40 mt-1">
-                  S: {ps.x_score} | A: {ps.y_score}
+                  A: {ps.y_score}/40 | C: {ps.x_score}/40
                 </div>
                 <div className="text-xs text-navy/30 mt-1">
                   {new Date(ps.completed_at).toLocaleDateString()}
@@ -292,46 +289,34 @@ export default function AdminSessionDetail() {
         <div id="admin-manager-report">
           {report ? (
             <div className="space-y-6">
-              <section className="bg-white rounded-lg border border-navy/10 p-8">
-                <h2 className="text-xl font-bold text-navy mb-4">
-                  Management Style
-                </h2>
-                <div
-                  className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-                  dangerouslySetInnerHTML={{
-                    __html: report.management_style,
-                  }}
-                />
-              </section>
-              <section className="bg-white rounded-lg border border-navy/10 p-8">
-                <h2 className="text-xl font-bold text-navy mb-4">
-                  Where It Hinders Performance
-                </h2>
-                <div
-                  className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-                  dangerouslySetInnerHTML={{
-                    __html: report.hinders_performance,
-                  }}
-                />
-              </section>
-              <section className="bg-white rounded-lg border border-navy/10 p-8">
-                <h2 className="text-xl font-bold text-navy mb-4">
-                  Critical Gaps to Intentional Leadership
-                </h2>
-                <div
-                  className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: report.critical_gaps }}
-                />
-              </section>
-              <section className="bg-white rounded-lg border border-navy/10 p-8">
-                <h2 className="text-xl font-bold text-navy mb-4">
-                  What to Focus On
-                </h2>
-                <div
-                  className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: report.focus_areas }}
-                />
-              </section>
+              {Object.entries(report).map(([key, html]) => {
+                if (!html) return null;
+                const titles: Record<string, string> = {
+                  your_profile: "Your Profile",
+                  your_strengths: "Your Strengths",
+                  your_gaps: "Your Gaps",
+                  category_breakdown: "Category Breakdown",
+                  priority_areas: "Priority Development Areas",
+                  your_context: "Your Context",
+                  next_steps: "Next Steps",
+                  // Legacy keys
+                  management_style: "Management Style",
+                  hinders_performance: "Where It Hinders Performance",
+                  critical_gaps: "Critical Gaps to Intentional Leadership",
+                  focus_areas: "What to Focus On",
+                };
+                return (
+                  <section key={key} className="bg-white rounded-lg border border-navy/10 p-8">
+                    <h2 className="text-xl font-bold text-navy mb-4">
+                      {titles[key] || key.replace(/_/g, " ")}
+                    </h2>
+                    <div
+                      className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: html }}
+                    />
+                  </section>
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-10 bg-white rounded-lg border border-navy/10">
@@ -372,20 +357,28 @@ export default function AdminSessionDetail() {
                         {r.question_text}
                       </p>
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`text-sm font-bold ${
-                            r.rating >= 4
-                              ? "text-blue"
-                              : r.rating <= 2
-                              ? "text-magenta"
-                              : "text-navy/50"
-                          }`}
-                        >
-                          {r.rating}/5
-                        </span>
-                        <span className="text-[10px] text-navy/30 uppercase">
-                          {r.axis === "accountability" ? "ACC" : "SUP"}
-                        </span>
+                        {r.quadrant_tag ? (
+                          <>
+                            <span
+                              className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                                r.quadrant_tag === "IL"
+                                  ? "bg-blue/10 text-blue"
+                                  : r.quadrant_tag === "DA"
+                                  ? "bg-magenta/10 text-magenta"
+                                  : "bg-amber/10 text-amber-600"
+                              }`}
+                            >
+                              {r.quadrant_tag}
+                            </span>
+                            <span className="text-[10px] text-navy/30">
+                              A:{r.a_score} C:{r.c_score}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-sm font-bold text-navy/50">
+                            {r.rating}/5
+                          </span>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -421,10 +414,10 @@ export default function AdminSessionDetail() {
                       Quadrant
                     </th>
                     <th className="text-left py-2 text-xs font-semibold text-navy/50">
-                      Supportiveness
+                      Accountability (A)
                     </th>
                     <th className="text-left py-2 text-xs font-semibold text-navy/50">
-                      Accountability
+                      Connection (C)
                     </th>
                   </tr>
                 </thead>
@@ -449,20 +442,7 @@ export default function AdminSessionDetail() {
                           {QUADRANT_LABELS[ps.quadrant]}
                         </td>
                         <td className="py-3 text-sm text-navy/70">
-                          {ps.x_score}
-                          {prev && xDelta !== 0 && (
-                            <span
-                              className={`ml-1 text-xs ${
-                                xDelta > 0 ? "text-blue" : "text-magenta"
-                              }`}
-                            >
-                              ({xDelta > 0 ? "+" : ""}
-                              {xDelta.toFixed(2)})
-                            </span>
-                          )}
-                        </td>
-                        <td className="py-3 text-sm text-navy/70">
-                          {ps.y_score}
+                          {ps.y_score}/40
                           {prev && yDelta !== 0 && (
                             <span
                               className={`ml-1 text-xs ${
@@ -470,7 +450,20 @@ export default function AdminSessionDetail() {
                               }`}
                             >
                               ({yDelta > 0 ? "+" : ""}
-                              {yDelta.toFixed(2)})
+                              {yDelta})
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-3 text-sm text-navy/70">
+                          {ps.x_score}/40
+                          {prev && xDelta !== 0 && (
+                            <span
+                              className={`ml-1 text-xs ${
+                                xDelta > 0 ? "text-blue" : "text-magenta"
+                              }`}
+                            >
+                              ({xDelta > 0 ? "+" : ""}
+                              {xDelta})
                             </span>
                           )}
                         </td>

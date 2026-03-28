@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { MIDPOINT } from "@/lib/quadrant-scoring";
+import { MIDPOINT, SCORE_MIN, SCORE_MAX } from "@/lib/quadrant-scoring";
 
 interface ManagerPoint {
   id: string;
   name: string;
-  xScore: number; // supportiveness
-  yScore: number; // accountability
+  xScore: number; // Support & Connection (20-40)
+  yScore: number; // Accountability & Structure (20-40)
   quadrant: string;
   attemptNumber?: number;
 }
@@ -47,18 +47,11 @@ export default function ScatterPlot({
   const plotWidth = width - padding * 2;
   const plotHeight = height - padding * 2;
 
-  // Convert score (1-5) to pixel position.
-  // The MIDPOINT (3.8) maps to the visual center (50%).
-  // Scores 1 to 3.8 fill the left/bottom half.
-  // Scores 3.8 to 5 fill the right/top half.
+  // Convert score (20-40) to pixel position.
+  // MIDPOINT (30) maps to visual center (50%).
+  // Score range: SCORE_MIN (20) to SCORE_MAX (40).
   function scoreToPercent(score: number) {
-    if (score <= MIDPOINT) {
-      // Map 1..MIDPOINT to 0..0.5
-      return ((score - 1) / (MIDPOINT - 1)) * 0.5;
-    } else {
-      // Map MIDPOINT..5 to 0.5..1
-      return 0.5 + ((score - MIDPOINT) / (5 - MIDPOINT)) * 0.5;
-    }
+    return (score - SCORE_MIN) / (SCORE_MAX - SCORE_MIN);
   }
 
   function toPixelX(score: number) {
@@ -69,18 +62,18 @@ export default function ScatterPlot({
     return padding + (1 - scoreToPercent(score)) * plotHeight;
   }
 
-  // Visual crosshairs at the center (equal quadrants visually)
-  const visualMidX = padding + plotWidth / 2;
-  const visualMidY = padding + plotHeight / 2;
+  // Visual crosshairs at the midpoint (30)
+  const visualMidX = toPixelX(MIDPOINT);
+  const visualMidY = toPixelY(MIDPOINT);
 
   return (
     <div className="relative inline-block">
       <svg width={width} height={height} className="overflow-visible">
-        {/* Quadrant backgrounds - equal visual quadrants */}
-        <rect x={visualMidX} y={padding} width={plotWidth / 2} height={plotHeight / 2} fill={QUADRANT_BG_COLORS.intentional} />
-        <rect x={padding} y={padding} width={plotWidth / 2} height={plotHeight / 2} fill={QUADRANT_BG_COLORS.command_control} />
-        <rect x={padding} y={visualMidY} width={plotWidth / 2} height={plotHeight / 2} fill={QUADRANT_BG_COLORS.absent} />
-        <rect x={visualMidX} y={visualMidY} width={plotWidth / 2} height={plotHeight / 2} fill={QUADRANT_BG_COLORS.overly_supportive} />
+        {/* Quadrant backgrounds */}
+        <rect x={visualMidX} y={padding} width={padding + plotWidth - visualMidX} height={visualMidY - padding} fill={QUADRANT_BG_COLORS.intentional} />
+        <rect x={padding} y={padding} width={visualMidX - padding} height={visualMidY - padding} fill={QUADRANT_BG_COLORS.command_control} />
+        <rect x={padding} y={visualMidY} width={visualMidX - padding} height={padding + plotHeight - visualMidY} fill={QUADRANT_BG_COLORS.absent} />
+        <rect x={visualMidX} y={visualMidY} width={padding + plotWidth - visualMidX} height={padding + plotHeight - visualMidY} fill={QUADRANT_BG_COLORS.overly_supportive} />
 
         {/* Border */}
         <rect
@@ -88,37 +81,37 @@ export default function ScatterPlot({
           fill="none" stroke="#101d51" strokeWidth="1" strokeOpacity="0.12" rx="4"
         />
 
-        {/* Crosshairs at visual center */}
+        {/* Crosshairs at midpoint */}
         <line x1={visualMidX} y1={padding} x2={visualMidX} y2={padding + plotHeight} stroke="#101d51" strokeWidth="1" strokeOpacity="0.12" />
         <line x1={padding} y1={visualMidY} x2={padding + plotWidth} y2={visualMidY} stroke="#101d51" strokeWidth="1" strokeOpacity="0.12" />
 
-        {/* Quadrant labels - centered in each quadrant region */}
+        {/* Quadrant labels */}
         {showLabels && (
           <>
-            <text x={visualMidX + plotWidth / 4} y={padding + plotHeight / 4} textAnchor="middle" fill="#007efa" fontSize="11" fontWeight="600" opacity="0.5">
+            <text x={visualMidX + (padding + plotWidth - visualMidX) / 2} y={padding + (visualMidY - padding) / 2} textAnchor="middle" fill="#007efa" fontSize="11" fontWeight="600" opacity="0.5">
               Intentional
             </text>
-            <text x={padding + plotWidth / 4} y={padding + plotHeight / 4} textAnchor="middle" fill="#F5A623" fontSize="10" fontWeight="600" opacity="0.5">
+            <text x={padding + (visualMidX - padding) / 2} y={padding + (visualMidY - padding) / 2} textAnchor="middle" fill="#F5A623" fontSize="10" fontWeight="600" opacity="0.5">
               Command &amp; Control
             </text>
-            <text x={padding + plotWidth / 4} y={visualMidY + plotHeight / 4} textAnchor="middle" fill="#EA0C67" fontSize="10" fontWeight="600" opacity="0.5">
-              Absent
+            <text x={padding + (visualMidX - padding) / 2} y={visualMidY + (padding + plotHeight - visualMidY) / 2} textAnchor="middle" fill="#EA0C67" fontSize="10" fontWeight="600" opacity="0.5">
+              Disengaged
             </text>
-            <text x={visualMidX + plotWidth / 4} y={visualMidY + plotHeight / 4} textAnchor="middle" fill="#F5A623" fontSize="10" fontWeight="600" opacity="0.5">
+            <text x={visualMidX + (padding + plotWidth - visualMidX) / 2} y={visualMidY + (padding + plotHeight - visualMidY) / 2} textAnchor="middle" fill="#F5A623" fontSize="10" fontWeight="600" opacity="0.5">
               Overly Supportive
             </text>
           </>
         )}
 
-        {/* Axis labels - clean, no numbers */}
+        {/* Axis labels */}
         <text x={padding + plotWidth / 2} y={height - 8} textAnchor="middle" fill="#101d51" fontSize="11" fontWeight="500" opacity="0.4">
-          Supportiveness →
+          Support &amp; Connection &rarr;
         </text>
         <text x={12} y={padding + plotHeight / 2} textAnchor="middle" fill="#101d51" fontSize="11" fontWeight="500" opacity="0.4" transform={`rotate(-90, 12, ${padding + plotHeight / 2})`}>
-          Accountability →
+          Accountability &rarr;
         </text>
 
-        {/* Movement arrows (for reassessment comparison) */}
+        {/* Movement arrows (reassessment comparison) */}
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
             <polygon points="0 0, 10 3.5, 0 7" fill="#101d51" fillOpacity="0.3" />

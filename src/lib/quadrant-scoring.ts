@@ -1,14 +1,14 @@
-// Quadrant Scoring Algorithm for ELITE5 Manager Assessment
+// Quadrant Scoring Algorithm for Manager Skills Assessment™
 //
-// Two axes:
-//   X-axis (supportiveness): How much the manager develops people, builds trust, communicates
-//   Y-axis (accountability): How much the manager drives execution, holds standards, addresses issues
+// Two axes (binary scoring per response: 1 or 2):
+//   A-axis (Accountability & Structure): Sum across 20 scenarios → range 20-40
+//   C-axis (Support & Connection): Sum across 20 scenarios → range 20-40
 //
-// Quadrants:
-//   Top Right: Intentional Leadership (high accountability + high supportiveness) = OPTIMAL
-//   Top Left: Command & Control (high accountability + low supportiveness)
-//   Bottom Right: Overly Supportive (low accountability + high supportiveness)
-//   Bottom Left: Absent/Disengaged (low accountability + low supportiveness)
+// Quadrants (threshold: > 30 = high):
+//   Intentional Leadership: high A + high C
+//   Command & Control: high A + low C
+//   Overly Supportive: low A + high C
+//   Disengaged & Absent: low A + low C
 
 export type Quadrant =
   | "intentional"
@@ -17,38 +17,37 @@ export type Quadrant =
   | "absent";
 
 export interface QuadrantResult {
-  xScore: number; // supportiveness (1-5 scale)
-  yScore: number; // accountability (1-5 scale)
+  aScore: number; // Accountability & Structure (20-40)
+  cScore: number; // Support & Connection (20-40)
   quadrant: Quadrant;
   quadrantLabel: string;
 }
 
-export interface ResponseData {
-  rating: number;
-  axis: "accountability" | "supportiveness";
-  reverse?: boolean; // If true, score is inverted (6 - rating)
+export interface ResponseScore {
+  a_score: number; // 1 or 2
+  c_score: number; // 1 or 2
+  dimension?: string;
 }
 
-// The threshold for Intentional Leadership.
-// Set at 3.8 (not 3.0) because:
-// 1. Self-assessment bias: most people rate themselves 3+ even when they're mediocre
-// 2. A 3/5 on "I address underperformance within days" means you often don't. That's not intentional.
-// 3. Intentional Leadership should mean something. It's the goal, not the default.
-// 4. This ensures the scatter plot actually differentiates managers rather than
-//    clustering everyone in the top-right quadrant.
-const MIDPOINT = 3.8;
+// The threshold for quadrant placement.
+// Score > 30 = high on that dimension.
+// Score <= 30 = low on that dimension.
+// 20 scenarios × max 2 per axis = 40 max. Midpoint of 20-40 range = 30.
+const MIDPOINT = 30;
 
-// Internal/admin labels (used in admin dashboard, CEO/CPO org reports)
+// Min and max possible scores (for scatter plot scale)
+export const SCORE_MIN = 20;
+export const SCORE_MAX = 40;
+
+// Internal/admin labels
 const QUADRANT_LABELS: Record<Quadrant, string> = {
   intentional: "Intentional Leadership",
   command_control: "Command & Control",
   overly_supportive: "Overly Supportive",
-  absent: "Absent / Disengaged",
+  absent: "Disengaged & Absent",
 };
 
-// Manager-facing labels (what the individual manager sees in their report)
-// These are developmental, not judgmental. No manager should open their
-// report and feel attacked by their quadrant name.
+// Manager-facing labels (developmental, not judgmental)
 const QUADRANT_LABELS_MANAGER: Record<Quadrant, string> = {
   intentional: "Intentional Leadership",
   command_control: "Results-Driven",
@@ -56,112 +55,62 @@ const QUADRANT_LABELS_MANAGER: Record<Quadrant, string> = {
   absent: "Emerging Leader",
 };
 
-export function calculateQuadrant(responses: ResponseData[]): QuadrantResult {
-  // For reverse-scored questions, invert: a "5" (strongly agree with a
-  // failure-mode statement) becomes a 1 for scoring purposes.
-  function effectiveRating(r: ResponseData) {
-    return r.reverse ? 6 - r.rating : r.rating;
-  }
-
-  const accountabilityResponses = responses.filter(
-    (r) => r.axis === "accountability"
-  );
-  const supportivenessResponses = responses.filter(
-    (r) => r.axis === "supportiveness"
-  );
-
-  const yScore =
-    accountabilityResponses.length > 0
-      ? accountabilityResponses.reduce((sum, r) => sum + effectiveRating(r), 0) /
-        accountabilityResponses.length
-      : MIDPOINT;
-
-  const xScore =
-    supportivenessResponses.length > 0
-      ? supportivenessResponses.reduce((sum, r) => sum + effectiveRating(r), 0) /
-        supportivenessResponses.length
-      : MIDPOINT;
+export function calculateQuadrant(responses: ResponseScore[]): QuadrantResult {
+  const aScore = responses.reduce((sum, r) => sum + r.a_score, 0);
+  const cScore = responses.reduce((sum, r) => sum + r.c_score, 0);
 
   let quadrant: Quadrant;
-  if (yScore >= MIDPOINT && xScore >= MIDPOINT) {
+  if (aScore > MIDPOINT && cScore > MIDPOINT) {
     quadrant = "intentional";
-  } else if (yScore >= MIDPOINT && xScore < MIDPOINT) {
+  } else if (aScore > MIDPOINT && cScore <= MIDPOINT) {
     quadrant = "command_control";
-  } else if (yScore < MIDPOINT && xScore >= MIDPOINT) {
+  } else if (aScore <= MIDPOINT && cScore > MIDPOINT) {
     quadrant = "overly_supportive";
   } else {
     quadrant = "absent";
   }
 
   return {
-    xScore: Math.round(xScore * 100) / 100,
-    yScore: Math.round(yScore * 100) / 100,
+    aScore,
+    cScore,
     quadrant,
     quadrantLabel: QUADRANT_LABELS[quadrant],
   };
 }
 
-// Get dimension-level scores for detailed reporting
+// Get dimension-level A and C scores for detailed reporting
 export function getDimensionScores(
-  responses: { dimension: string; rating: number; axis: string; reverse?: boolean }[]
+  responses: { dimension: string; a_score: number; c_score: number }[]
 ) {
-  const dimensions: Record<
-    string,
-    { total: number; count: number; accountability: number[]; supportiveness: number[] }
-  > = {};
+  const dimensions: Record<string, { a_total: number; c_total: number; count: number }> = {};
 
   for (const r of responses) {
-    const score = r.reverse ? 6 - r.rating : r.rating;
     if (!dimensions[r.dimension]) {
-      dimensions[r.dimension] = {
-        total: 0,
-        count: 0,
-        accountability: [],
-        supportiveness: [],
-      };
+      dimensions[r.dimension] = { a_total: 0, c_total: 0, count: 0 };
     }
-    dimensions[r.dimension].total += score;
+    dimensions[r.dimension].a_total += r.a_score;
+    dimensions[r.dimension].c_total += r.c_score;
     dimensions[r.dimension].count += 1;
-    if (r.axis === "accountability") {
-      dimensions[r.dimension].accountability.push(score);
-    } else {
-      dimensions[r.dimension].supportiveness.push(score);
-    }
   }
 
   return Object.entries(dimensions).map(([key, data]) => ({
     dimension: key,
-    average: Math.round((data.total / data.count) * 100) / 100,
-    accountabilityAvg:
-      data.accountability.length > 0
-        ? Math.round(
-            (data.accountability.reduce((a, b) => a + b, 0) /
-              data.accountability.length) *
-              100
-          ) / 100
-        : null,
-    supportivenessAvg:
-      data.supportiveness.length > 0
-        ? Math.round(
-            (data.supportiveness.reduce((a, b) => a + b, 0) /
-              data.supportiveness.length) *
-              100
-          ) / 100
-        : null,
+    a_score: data.a_total, // Range: 4-8 (4 scenarios × 1 or 2)
+    c_score: data.c_total, // Range: 4-8
+    count: data.count,
   }));
 }
 
-// Calculate gap to intentional leadership (5.0 on both axes)
+// Calculate gap to intentional leadership (max is 40 on both axes)
 export function getGapToIntentional(result: QuadrantResult) {
   return {
-    accountabilityGap: Math.round((5.0 - result.yScore) * 100) / 100,
-    supportivenessGap: Math.round((5.0 - result.xScore) * 100) / 100,
-    totalGap:
-      Math.round((5.0 - result.yScore + (5.0 - result.xScore)) * 100) / 100,
+    accountabilityGap: SCORE_MAX - result.aScore,
+    connectionGap: SCORE_MAX - result.cScore,
+    totalGap: (SCORE_MAX - result.aScore) + (SCORE_MAX - result.cScore),
     primaryGapAxis:
-      5.0 - result.yScore > 5.0 - result.xScore
+      SCORE_MAX - result.aScore > SCORE_MAX - result.cScore
         ? ("accountability" as const)
-        : ("supportiveness" as const),
+        : ("connection" as const),
   };
 }
 

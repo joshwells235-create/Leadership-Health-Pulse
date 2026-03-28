@@ -118,10 +118,10 @@ export default function ManagerAssessmentIntake() {
             {(company as Record<string, unknown>)?.name as string}
           </div>
           <h1 className="text-3xl font-bold text-navy">
-            ELITE5 Management Assessment
+            Manager Skills Assessment
           </h1>
           <p className="mt-3 text-navy/70">
-            This assessment takes about 5 minutes. Your responses help identify
+            This assessment takes about 15 minutes. Your responses help identify
             your management style and where to focus your development.
           </p>
         </div>
