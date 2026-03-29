@@ -261,7 +261,13 @@ Return the cleaned JSON object with the same seven keys. Return ONLY the JSON. N
       cleanedReport = reportContent;
     }
 
-    // Save report
+    // Delete any existing individual reports for this session before saving
+    await supabase
+      .from("manager_reports")
+      .delete()
+      .eq("session_id", sessionId)
+      .eq("report_type", "individual");
+
     const { error: saveError } = await supabase
       .from("manager_reports")
       .insert({
