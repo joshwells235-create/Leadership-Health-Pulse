@@ -207,16 +207,62 @@ Return ONLY the JSON object. No markdown code fences.`;
       );
     }
 
+    // AI Detection Sweep (second pass)
+    const sweepResponse = await anthropic.messages.create({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 5000,
+      system: `You are an editorial quality control pass. Take the JSON report below and eliminate anything that reads as AI-generated or could put a CEO/CPO on the defensive.
+
+Go through every sentence and fix:
+- Hollow intensifiers ("innovative," "cutting-edge," "leverage," "delve," "navigate," "landscape," "robust," "seamless," "elevate," "holistic," "synergy," "empower")
+- Any "It's not X, it's Y" constructions
+- Overly parallel sentence structures or triadic lists used as filler
+- Hedging language ("It's important to note that...")
+- Generic openings ("In today's fast-paced world..." or "When it comes to...")
+- ALL em-dashes (replace with commas, semicolons, colons, or periods)
+- Any phrasing that sounds templated rather than written by a person with decades of experience
+- BLAME LANGUAGE: Rewrite anything that blames the CEO or leadership team personally. Frame problems as organizational dynamics, not personal failures. "The organization hasn't built systems for..." not "leadership failed to..."
+- BACKWARD-LOOKING FRAMING: Replace "you should have" or "this was caused by" with forward-looking language about where the organization needs to go
+- Any mention of "ELITE5", "Elite Five", scoring terminology ("A score", "C score"), or axis references
+
+Return the cleaned JSON object with the same four keys. Return ONLY the JSON. No code fences. No explanation.`,
+      messages: [{ role: "user", content: JSON.stringify(reportContent) }],
+    });
+
+    const sweepText =
+      sweepResponse.content[0].type === "text"
+        ? sweepResponse.content[0].text
+        : "";
+
+    let cleanedReport;
+    try {
+      const jsonMatch = sweepText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        cleanedReport = JSON.parse(jsonMatch[0]);
+      } else {
+        cleanedReport = reportContent;
+      }
+    } catch {
+      cleanedReport = reportContent;
+    }
+
+    // Delete existing org reports for this assessment before saving
+    await supabase
+      .from("manager_reports")
+      .delete()
+      .eq("assessment_id", assessmentId)
+      .eq("report_type", "organizational");
+
     // Save org report
     await supabase.from("manager_reports").insert({
       session_id: null,
       assessment_id: assessmentId,
       report_type: "organizational",
-      generated_content: reportContent,
+      generated_content: cleanedReport,
       version: 1,
     });
 
-    return NextResponse.json({ report: reportContent });
+    return NextResponse.json({ report: cleanedReport });
   } catch (err) {
     console.error("Org report generation error:", err);
     return NextResponse.json(
