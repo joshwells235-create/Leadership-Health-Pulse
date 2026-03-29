@@ -286,11 +286,10 @@ export default function AdminSessionDetail() {
       </div>
 
       {/* Report Tab */}
-      {activeTab === "report" && (
-        <div>
-          <div id="admin-manager-report">
-            {report ? (
-              <BrandedReport
+      <div style={{ display: activeTab === "report" ? "block" : "none" }}>
+        <div id="admin-manager-report">
+          {report ? (
+            <BrandedReport
                 title="Manager Skills Assessment"
                 subtitle={session.respondent_name}
                 badge={{
@@ -336,8 +335,7 @@ export default function AdminSessionDetail() {
               </div>
             )}
           </div>
-        </div>
-      )}
+      </div>
 
       {/* Responses Tab */}
       {activeTab === "responses" && (
