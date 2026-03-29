@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { QUADRANT_LABELS, type Quadrant } from "@/lib/quadrant-scoring";
+import { QUADRANT_LABELS, QUADRANT_LABELS_MANAGER, type Quadrant } from "@/lib/quadrant-scoring";
 import { generatePDF } from "@/lib/generate-pdf";
+import { BrandedReport, ReportSection } from "@/components/branded-report";
 
 interface SessionData {
   id: string;
@@ -98,7 +99,7 @@ export default function AdminSessionDetail() {
       const name = session?.respondent_name?.replace(/\s+/g, "-") || "Manager";
       await generatePDF(
         "admin-manager-report",
-        `ELITE5-Assessment-${name}.pdf`
+        `MSA-Report-${name}.pdf`
       );
     } catch (err) {
       console.error("PDF download failed:", err);
@@ -286,51 +287,55 @@ export default function AdminSessionDetail() {
 
       {/* Report Tab */}
       {activeTab === "report" && (
-        <div id="admin-manager-report">
-          {report ? (
-            <div className="space-y-6">
-              {Object.entries(report).map(([key, html]) => {
-                if (!html) return null;
-                const titles: Record<string, string> = {
-                  your_profile: "Your Profile",
-                  your_strengths: "Your Strengths",
-                  your_gaps: "Your Gaps",
-                  category_breakdown: "Category Breakdown",
-                  priority_areas: "Priority Development Areas",
-                  your_context: "Your Context",
-                  next_steps: "Next Steps",
-                  // Legacy keys
-                  management_style: "Management Style",
-                  hinders_performance: "Where It Hinders Performance",
-                  critical_gaps: "Critical Gaps to Intentional Leadership",
-                  focus_areas: "What to Focus On",
-                };
-                return (
-                  <section key={key} className="bg-white rounded-lg border border-navy/10 p-8">
-                    <h2 className="text-xl font-bold text-navy mb-4">
-                      {titles[key] || key.replace(/_/g, " ")}
-                    </h2>
-                    <div
-                      className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: html }}
-                    />
-                  </section>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-10 bg-white rounded-lg border border-navy/10">
-              <p className="text-navy/40">
-                No report generated yet.
-              </p>
-              <button
-                onClick={handleRegenerate}
-                className="mt-4 bg-blue text-white text-sm font-semibold px-6 py-2 rounded-md"
+        <div>
+          <div id="admin-manager-report">
+            {report ? (
+              <BrandedReport
+                title="Manager Skills Assessment"
+                subtitle={session.respondent_name}
+                badge={{
+                  label: QUADRANT_LABELS_MANAGER[session.quadrant],
+                  color: quadrantColor,
+                }}
               >
-                Generate Report
-              </button>
-            </div>
-          )}
+                {(() => {
+                  const sections = [
+                    { key: "your_profile", title: "Your Profile", accent: "#101d51" },
+                    { key: "your_strengths", title: "Your Strengths", accent: "#007efa" },
+                    { key: "your_gaps", title: "Your Gaps", accent: "#EA0C67" },
+                    { key: "category_breakdown", title: "Category Breakdown", accent: "#101d51" },
+                    { key: "priority_areas", title: "Priority Development Areas", accent: "#F5A623" },
+                    { key: "your_context", title: "Your Context", accent: "#101d51" },
+                    { key: "next_steps", title: "Next Steps", accent: "#007efa" },
+                    // Legacy keys
+                    { key: "management_style", title: "Management Style", accent: "#101d51" },
+                    { key: "hinders_performance", title: "Where It Hinders Performance", accent: "#EA0C67" },
+                    { key: "critical_gaps", title: "Critical Gaps", accent: "#EA0C67" },
+                    { key: "focus_areas", title: "What to Focus On", accent: "#F5A623" },
+                  ];
+                  return sections.map((s) => {
+                    const html = report[s.key];
+                    if (!html) return null;
+                    return (
+                      <ReportSection key={s.key} title={s.title} accentColor={s.accent}>
+                        <div dangerouslySetInnerHTML={{ __html: html }} />
+                      </ReportSection>
+                    );
+                  });
+                })()}
+              </BrandedReport>
+            ) : (
+              <div className="text-center py-10 bg-white rounded-lg border border-navy/10">
+                <p className="text-navy/40">No report generated yet.</p>
+                <button
+                  onClick={handleRegenerate}
+                  className="mt-4 bg-blue text-white text-sm font-semibold px-6 py-2 rounded-md"
+                >
+                  Generate Report
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
