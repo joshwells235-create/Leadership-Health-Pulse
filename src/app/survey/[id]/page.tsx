@@ -115,7 +115,7 @@ export default function SurveyPage() {
   const surveyId = params.id as string;
 
   // Survey metadata
-  const [surveyPath, setSurveyPath] = useState<"two_tier" | "three_tier">("three_tier");
+  const [surveyPath, setSurveyPath] = useState<"two_tier" | "three_tier" | null>(null);
   const [tiers, setTiers] = useState<TierData[]>([]);
   const [phase, setPhase] = useState<SurveyPhase>("loading");
 
