@@ -9,6 +9,7 @@ import {
   type ReportData,
   type SurveyData,
 } from "@/components/report-components";
+import { BrandedReport } from "@/components/branded-report";
 
 export default function ReportPage() {
   const params = useParams();
@@ -170,9 +171,14 @@ export default function ReportPage() {
       </div>
 
       <div id="report-content" className="max-w-3xl w-full">
-        <ReportView report={report} survey={survey} />
+        <BrandedReport
+          title="Leadership Health Report"
+          subtitle={`${survey?.respondent_name || "CEO"}, ${survey?.companies?.name || "Company"}`}
+        >
+          <ReportView report={report} survey={survey} />
+        </BrandedReport>
 
-        {/* CTA */}
+        {/* CTA (outside branded container for visual distinction) */}
         <div className="bg-navy rounded-xl p-8 text-center space-y-4 mt-8">
           <h2 className="text-2xl font-bold text-white">
             Want to Talk Through These Results?
@@ -190,11 +196,6 @@ export default function ReportPage() {
           >
             Book a Debrief
           </a>
-        </div>
-
-        {/* Footer */}
-        <div className="text-center py-6 text-sm text-navy/40">
-          <p>Leadership Health Pulse by LeadShift</p>
         </div>
       </div>
     </main>

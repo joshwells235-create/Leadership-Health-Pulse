@@ -6,6 +6,7 @@ import Link from "next/link";
 import ScatterPlot from "@/components/scatter-plot";
 import { QUADRANT_LABELS, type Quadrant } from "@/lib/quadrant-scoring";
 import { generatePDF } from "@/lib/generate-pdf";
+import { BrandedReport, ReportSection } from "@/components/branded-report";
 
 interface OrgReportContent {
   overview: string;
@@ -96,7 +97,7 @@ export default function AdminAssessmentDetail() {
     setIsDownloadingPDF(true);
     try {
       const companyName = ((company as Record<string, unknown>)?.name as string || "Company").replace(/\s+/g, "-");
-      await generatePDF("org-report-content", `ELITE5-Org-Report-${companyName}.pdf`);
+      await generatePDF("org-report-content", `Org-Assessment-${companyName}.pdf`);
     } catch (err) {
       console.error("PDF download failed:", err);
     }
@@ -181,122 +182,74 @@ export default function AdminAssessmentDetail() {
       {/* Stats + Scatter Plot */}
       {completedSessions.length > 0 ? (
         <>
-          {/* PDF-capturable container: grid + report sections */}
+          {/* PDF-capturable container */}
           <div id="org-report-content">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Scatter Plot */}
-              <div className="bg-white rounded-lg border border-navy/10 p-6">
-                <h2 className="font-semibold text-navy mb-4">
-                  Team Quadrant Map
-                </h2>
-                <div className="flex justify-center">
-                  <ScatterPlot managers={scatterData} width={420} height={420} />
+            <BrandedReport
+              title="Organizational Assessment"
+              subtitle={(company?.name as string) || ""}
+            >
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-semibold text-navy mb-3 text-sm uppercase tracking-wide">
+                    Team Quadrant Map
+                  </h3>
+                  <div className="flex justify-center">
+                    <ScatterPlot managers={scatterData} width={380} height={380} />
+                  </div>
                 </div>
-              </div>
-
-              {/* Distribution */}
-              <div className="bg-white rounded-lg border border-navy/10 p-6">
-                <h2 className="font-semibold text-navy mb-4">Distribution</h2>
-                <div className="space-y-4">
-                  {Object.entries(distribution).map(([quadrant, count]) => {
-                    const pct =
-                      completedSessions.length > 0
-                        ? Math.round((count / completedSessions.length) * 100)
-                        : 0;
-                    const colors: Record<string, string> = {
-                      intentional: "#007efa",
-                      command_control: "#F5A623",
-                      overly_supportive: "#F5A623",
-                      absent: "#EA0C67",
-                    };
-                    return (
-                      <div key={quadrant}>
-                        <div className="flex justify-between text-sm mb-1">
-                          <span className="font-medium text-navy">
-                            {QUADRANT_LABELS[quadrant as Quadrant]}
-                          </span>
-                          <span className="text-navy/50">
-                            {count} ({pct}%)
-                          </span>
+                <div>
+                  <h3 className="font-semibold text-navy mb-3 text-sm uppercase tracking-wide">
+                    Distribution
+                  </h3>
+                  <div className="space-y-4">
+                    {Object.entries(distribution).map(([quadrant, count]) => {
+                      const pct = completedSessions.length > 0
+                        ? Math.round((count / completedSessions.length) * 100) : 0;
+                      const colors: Record<string, string> = {
+                        intentional: "#007efa", command_control: "#F5A623",
+                        overly_supportive: "#F5A623", absent: "#EA0C67",
+                      };
+                      return (
+                        <div key={quadrant}>
+                          <div className="flex justify-between text-sm mb-1">
+                            <span className="font-medium text-navy">{QUADRANT_LABELS[quadrant as Quadrant]}</span>
+                            <span className="text-navy/50">{count} ({pct}%)</span>
+                          </div>
+                          <div className="w-full bg-navy/5 rounded-full h-2.5">
+                            <div className="h-2.5 rounded-full" style={{ width: `${pct}%`, backgroundColor: colors[quadrant] }} />
+                          </div>
                         </div>
-                        <div className="w-full bg-navy/5 rounded-full h-3">
-                          <div
-                            className="h-3 rounded-full transition-all"
-                            style={{
-                              width: `${pct}%`,
-                              backgroundColor: colors[quadrant],
-                            }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="mt-8 pt-4 border-t border-navy/10">
-                  <div className="grid grid-cols-2 gap-4 text-center">
+                      );
+                    })}
+                  </div>
+                  <div className="mt-6 pt-4 border-t border-navy/10 grid grid-cols-2 gap-4 text-center">
                     <div>
-                      <p className="text-2xl font-bold text-navy">
-                        {completedSessions.length}
-                      </p>
+                      <p className="text-2xl font-bold text-navy">{completedSessions.length}</p>
                       <p className="text-xs text-navy/50">Completed</p>
                     </div>
                     <div>
-                      <p className="text-2xl font-bold text-navy">
-                        {sessions.filter((s) => s.status === "in_progress").length}
-                      </p>
+                      <p className="text-2xl font-bold text-navy">{sessions.filter((s) => s.status === "in_progress").length}</p>
                       <p className="text-xs text-navy/50">In Progress</p>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Organizational Report sections (inside the PDF container) */}
-            {orgReport && (
-              <div className="space-y-6">
-                <section className="bg-white rounded-lg border border-navy/10 p-8">
-                  <h3 className="text-lg font-bold text-navy mb-4">Overview</h3>
-                  <div
-                    className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-                    dangerouslySetInnerHTML={{ __html: orgReport.overview }}
-                  />
-                </section>
-                <section className="bg-white rounded-lg border border-navy/10 p-8">
-                  <h3 className="text-lg font-bold text-navy mb-4">
-                    Distribution Analysis
-                  </h3>
-                  <div
-                    className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-                    dangerouslySetInnerHTML={{
-                      __html: orgReport.distribution_analysis,
-                    }}
-                  />
-                </section>
-                <section className="bg-white rounded-lg border border-navy/10 p-8">
-                  <h3 className="text-lg font-bold text-navy mb-4">
-                    Collective Gaps
-                  </h3>
-                  <div
-                    className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-                    dangerouslySetInnerHTML={{
-                      __html: orgReport.collective_gaps,
-                    }}
-                  />
-                </section>
-                <section className="bg-white rounded-lg border border-navy/10 p-8">
-                  <h3 className="text-lg font-bold text-navy mb-4">
-                    Development Priorities
-                  </h3>
-                  <div
-                    className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-                    dangerouslySetInnerHTML={{
-                      __html: orgReport.development_priorities,
-                    }}
-                  />
-                </section>
-              </div>
-            )}
+              {orgReport && (
+                <>
+                  {[
+                    { title: "Overview", key: "overview", accent: "#101d51" },
+                    { title: "Distribution Analysis", key: "distribution_analysis", accent: "#007efa" },
+                    { title: "Collective Gaps", key: "collective_gaps", accent: "#EA0C67" },
+                    { title: "Development Priorities", key: "development_priorities", accent: "#F5A623" },
+                  ].map((section) => (
+                    <ReportSection key={section.key} title={section.title} accentColor={section.accent}>
+                      <div dangerouslySetInnerHTML={{ __html: orgReport[section.key as keyof OrgReportContent] }} />
+                    </ReportSection>
+                  ))}
+                </>
+              )}
+            </BrandedReport>
           </div>
 
           {/* Action buttons (outside the PDF container) */}

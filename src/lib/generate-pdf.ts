@@ -12,9 +12,9 @@ export async function generatePDF(
 
   // Capture the report content as a canvas
   const canvas = await html2canvas(element, {
-    scale: 2,
+    scale: 2.5,
     useCORS: true,
-    backgroundColor: "#f3f3f3",
+    backgroundColor: "#ffffff",
     logging: false,
   });
 

@@ -11,13 +11,14 @@ import {
   type Quadrant,
 } from "@/lib/quadrant-scoring";
 import { generatePDF } from "@/lib/generate-pdf";
+import { BrandedReport, ReportSection } from "@/components/branded-report";
 
 interface SessionData {
   id: string;
   respondent_name: string;
   quadrant: Quadrant;
-  x_score: number; // Support & Connection (20-40)
-  y_score: number; // Accountability & Structure (20-40)
+  x_score: number;
+  y_score: number;
   completed_at: string;
 }
 
@@ -58,7 +59,6 @@ export default function ManagerAssessmentResult() {
 
       setSession(sess as SessionData);
 
-      // Check for existing report
       const { data: existingReport } = await supabase
         .from("manager_reports")
         .select("*")
@@ -74,7 +74,6 @@ export default function ManagerAssessmentResult() {
         return;
       }
 
-      // Generate report
       setGenerating(true);
       setLoading(false);
 
@@ -98,10 +97,7 @@ export default function ManagerAssessmentResult() {
     setIsDownloading(true);
     try {
       const name = session?.respondent_name?.replace(/\s+/g, "-") || "Manager";
-      await generatePDF(
-        "manager-report-content",
-        `MSA-Report-${name}.pdf`
-      );
+      await generatePDF("manager-report-content", `MSA-Report-${name}.pdf`);
     } catch (err) {
       console.error("PDF download failed:", err);
     }
@@ -158,109 +154,91 @@ export default function ManagerAssessmentResult() {
 
   const quadrantColor = quadrantColors[session.quadrant] || "#101d51";
 
-  // Map score (20-40) to 0-100% for mini chart positioning
+  // Mini chart positioning
   function scoreToPercent(score: number) {
     return ((score - SCORE_MIN) / (SCORE_MAX - SCORE_MIN)) * 100;
   }
   const dotLeft = scoreToPercent(session.x_score);
   const dotBottom = scoreToPercent(session.y_score);
-
-  // Midpoint position in the mini chart
   const midPercent = ((MIDPOINT - SCORE_MIN) / (SCORE_MAX - SCORE_MIN)) * 100;
 
-  const reportSections = [
-    { key: "your_profile", title: "Your Profile" },
-    { key: "your_strengths", title: "Your Strengths" },
-    { key: "your_gaps", title: "Your Gaps" },
-    { key: "category_breakdown", title: "Category Breakdown" },
-    { key: "priority_areas", title: "Priority Development Areas" },
-    { key: "your_context", title: "Your Context" },
-    { key: "next_steps", title: "Next Steps" },
+  const sections = [
+    { key: "your_profile", title: "Your Profile", accent: "#101d51" },
+    { key: "your_strengths", title: "Your Strengths", accent: "#007efa" },
+    { key: "your_gaps", title: "Your Gaps", accent: "#EA0C67" },
+    { key: "category_breakdown", title: "Category Breakdown", accent: "#101d51" },
+    { key: "priority_areas", title: "Priority Development Areas", accent: "#F5A623" },
+    { key: "your_context", title: "Your Context", accent: "#101d51" },
+    { key: "next_steps", title: "Next Steps", accent: "#007efa" },
   ];
 
   return (
     <main className="flex-1 flex flex-col items-center px-4 py-12">
-      <div className="max-w-3xl w-full" id="manager-report-content">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <h1 className="text-3xl font-bold text-navy">
-            Your Assessment Results
-          </h1>
-          <p className="mt-2 text-navy/60">{session.respondent_name}</p>
-        </div>
-
-        {/* Quadrant Badge */}
-        <div className="text-center mb-10">
-          <div
-            className="inline-block px-6 py-3 rounded-lg text-white font-bold text-xl"
-            style={{ backgroundColor: quadrantColor }}
+      <div className="max-w-3xl w-full">
+        {/* Branded report (captured for PDF) */}
+        <div id="manager-report-content">
+          <BrandedReport
+            title="Manager Skills Assessment"
+            subtitle={session.respondent_name}
+            badge={{
+              label: QUADRANT_LABELS_MANAGER[session.quadrant],
+              color: quadrantColor,
+            }}
           >
-            {QUADRANT_LABELS_MANAGER[session.quadrant]}
-          </div>
-        </div>
-
-        {/* Mini Quadrant Visual */}
-        <div className="flex justify-center mb-10">
-          <div className="relative w-64 h-64 border-2 border-navy/20 rounded-lg overflow-hidden">
-            {/* Quadrant labels */}
-            <div className="absolute top-2 left-2 text-[10px] text-navy/40 font-medium">
-              Results-Driven
-            </div>
-            <div className="absolute top-2 right-2 text-[10px] text-blue font-medium">
-              Intentional
-            </div>
-            <div className="absolute bottom-2 left-2 text-[10px] text-navy/40 font-medium">
-              Emerging
-            </div>
-            <div className="absolute bottom-2 right-2 text-[10px] text-navy/40 font-medium">
-              People-First
-            </div>
-            {/* Crosshairs at midpoint */}
-            <div
-              className="absolute top-0 bottom-0 w-px bg-navy/10"
-              style={{ left: `${midPercent}%` }}
-            />
-            <div
-              className="absolute left-0 right-0 h-px bg-navy/10"
-              style={{ top: `${100 - midPercent}%` }}
-            />
-            {/* Dot */}
-            <div
-              className="absolute w-4 h-4 rounded-full border-2 border-white shadow-md"
-              style={{
-                backgroundColor: quadrantColor,
-                left: `${dotLeft}%`,
-                bottom: `${dotBottom}%`,
-                transform: "translate(-50%, 50%)",
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Report Sections */}
-        <div className="space-y-8">
-          {reportSections.map((section) => {
-            const content = report[section.key as keyof ReportContent];
-            if (!content) return null;
-            return (
-              <section
-                key={section.key}
-                className="bg-white rounded-lg border border-navy/10 p-8"
-              >
-                <h2 className="text-xl font-bold text-navy mb-4">
-                  {section.title}
-                </h2>
+            {/* Mini Quadrant Visual */}
+            <div className="flex justify-center">
+              <div className="relative w-56 h-56 border border-navy/15 rounded-lg overflow-hidden bg-white">
+                <div className="absolute top-2 left-2 text-[9px] text-navy/30 font-medium">
+                  Results-Driven
+                </div>
+                <div className="absolute top-2 right-2 text-[9px] text-blue/60 font-medium">
+                  Intentional
+                </div>
+                <div className="absolute bottom-2 left-2 text-[9px] text-navy/30 font-medium">
+                  Emerging
+                </div>
+                <div className="absolute bottom-2 right-2 text-[9px] text-navy/30 font-medium">
+                  People-First
+                </div>
                 <div
-                  className="prose prose-navy max-w-none text-navy/80 leading-relaxed"
-                  dangerouslySetInnerHTML={{ __html: content }}
+                  className="absolute top-0 bottom-0 w-px bg-navy/8"
+                  style={{ left: `${midPercent}%` }}
                 />
-              </section>
-            );
-          })}
+                <div
+                  className="absolute left-0 right-0 h-px bg-navy/8"
+                  style={{ top: `${100 - midPercent}%` }}
+                />
+                <div
+                  className="absolute w-3.5 h-3.5 rounded-full border-2 border-white shadow-md"
+                  style={{
+                    backgroundColor: quadrantColor,
+                    left: `${dotLeft}%`,
+                    bottom: `${dotBottom}%`,
+                    transform: "translate(-50%, 50%)",
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Report Sections */}
+            {sections.map((s) => {
+              const content = report[s.key as keyof ReportContent];
+              if (!content) return null;
+              return (
+                <ReportSection
+                  key={s.key}
+                  title={s.title}
+                  accentColor={s.accent}
+                >
+                  <div dangerouslySetInnerHTML={{ __html: content }} />
+                </ReportSection>
+              );
+            })}
+          </BrandedReport>
         </div>
 
-        {/* Download */}
-        <div className="mt-10 text-center">
+        {/* Download button (outside capture area) */}
+        <div className="mt-8 text-center">
           <button
             onClick={handleDownloadPDF}
             disabled={isDownloading}
