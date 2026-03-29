@@ -32,28 +32,35 @@ export default function AdminLayout({
   return (
     <div className="min-h-screen bg-light-gray">
       {/* Top Nav */}
-      <nav className="bg-navy shadow-md">
+      <nav className="bg-navy shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-14">
             {/* Logo + Nav Links */}
             <div className="flex items-center gap-8">
-              <Link href="/admin" className="text-white font-bold text-lg">
-                LeadShift
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <Link href="/admin" className="flex items-center gap-2">
+                <img
+                  src="/leadshift-logo-white.svg"
+                  alt="LeadShift"
+                  className="h-6 opacity-90"
+                />
               </Link>
               <div className="flex gap-1">
                 {navItems.map((item) => {
                   const isActive =
                     item.href === "/admin"
-                      ? pathname === "/admin" || pathname.startsWith("/admin/companies")
-                      : pathname === item.href || pathname.startsWith(item.href + "/");
+                      ? pathname === "/admin" ||
+                        pathname.startsWith("/admin/companies")
+                      : pathname === item.href ||
+                        pathname.startsWith(item.href + "/");
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                      className={`px-4 py-1.5 rounded-md text-sm font-medium transition-all ${
                         isActive
-                          ? "bg-white/15 text-white"
-                          : "text-white/70 hover:text-white hover:bg-white/10"
+                          ? "bg-white/15 text-white shadow-sm"
+                          : "text-white/60 hover:text-white hover:bg-white/10"
                       }`}
                     >
                       {item.label}
@@ -66,7 +73,7 @@ export default function AdminLayout({
             {/* Logout */}
             <button
               onClick={handleLogout}
-              className="text-white/60 text-sm font-medium hover:text-white transition-colors"
+              className="text-white/50 text-xs font-medium hover:text-white/90 transition-colors px-3 py-1.5 rounded-md hover:bg-white/10"
             >
               Sign Out
             </button>

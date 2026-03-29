@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     .from("manager_assessments")
     .insert({
       company_id: companyId,
-      name: assessmentName || "ELITE5 Management Assessment",
+      name: assessmentName || "Manager Skills Assessment",
       slug: finalSlug,
       status: "active",
     })

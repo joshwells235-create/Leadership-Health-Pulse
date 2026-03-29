@@ -182,7 +182,7 @@ export default function AdminCompanies() {
             <Link
               key={c.id}
               href={`/admin/companies/${c.id}`}
-              className="block bg-white rounded-xl border border-navy/10 shadow-[0px_2px_20px_rgba(0,0,0,0.06)] p-6 hover:border-blue/30 hover:shadow-[0px_4px_24px_rgba(0,126,250,0.1)] transition-all"
+              className="group block bg-white rounded-xl border border-navy/10 shadow-[0px_2px_20px_rgba(0,0,0,0.06)] p-6 hover:border-blue/30 hover:shadow-[0px_4px_24px_rgba(0,126,250,0.12)] transition-all"
             >
               {/* Company header */}
               <div className="flex items-start justify-between mb-4">
@@ -194,8 +194,8 @@ export default function AdminCompanies() {
                       .join(" · ")}
                   </p>
                 </div>
-                <span className="text-xs text-navy/40">
-                  {formatDate(c.lastActivity)}
+                <span className="text-xs text-navy/30 group-hover:text-blue transition-colors">
+                  {formatDate(c.lastActivity)} &rarr;
                 </span>
               </div>
 
@@ -224,10 +224,10 @@ export default function AdminCompanies() {
                   )}
                 </div>
 
-                {/* ELITE5 Assessment */}
+                {/* MSA Assessment */}
                 <div className="bg-navy/[0.03] rounded-lg p-3">
                   <p className="text-[10px] font-semibold text-navy/40 uppercase tracking-wide mb-1">
-                    ELITE5
+                    MSA
                   </p>
                   {c.assessment ? (
                     <p className="text-lg font-bold text-navy">

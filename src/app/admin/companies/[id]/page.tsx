@@ -76,6 +76,7 @@ export default function CompanyDetailPage() {
   const [creatingAssessment, setCreatingAssessment] = useState(false);
   const [showDeleteCompany, setShowDeleteCompany] = useState(false);
   const [deletingCompany, setDeletingCompany] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   const assessment = assessments.length > 0 ? assessments[0] : null;
 
@@ -264,10 +265,18 @@ export default function CompanyDetailPage() {
         {assessment && (
           <div className="flex gap-3">
             <button
-              onClick={() => navigator.clipboard.writeText(assessmentLink)}
-              className="text-sm text-blue font-medium hover:text-blue/80 border border-blue/20 px-4 py-2 rounded-md"
+              onClick={() => {
+                navigator.clipboard.writeText(assessmentLink);
+                setLinkCopied(true);
+                setTimeout(() => setLinkCopied(false), 2000);
+              }}
+              className={`text-sm font-medium px-4 py-2 rounded-md border transition-all ${
+                linkCopied
+                  ? "bg-blue text-white border-blue"
+                  : "text-blue border-blue/20 hover:bg-blue/5 hover:border-blue/40"
+              }`}
             >
-              Copy Assessment Link
+              {linkCopied ? "Copied!" : "Copy Assessment Link"}
             </button>
             {completedSessions.length >= 2 && (
               <button
@@ -344,7 +353,7 @@ export default function CompanyDetailPage() {
                   return (
                     <tr
                       key={s.id}
-                      className="border-b border-navy/5 hover:bg-navy/3 cursor-pointer transition-colors"
+                      className="border-b border-navy/5 hover:bg-navy/[0.04] cursor-pointer transition-colors"
                       onClick={() =>
                         (window.location.href = `/admin/survey/${s.id}`)
                       }
@@ -402,10 +411,10 @@ export default function CompanyDetailPage() {
         )}
       </div>
 
-      {/* ===== SECTION 2: ELITE5 ASSESSMENT ===== */}
+      {/* ===== SECTION 2: MANAGER SKILLS ASSESSMENT ===== */}
       <div>
         <h2 className="text-lg font-bold text-navy mb-4">
-          ELITE5 Manager Assessment
+          Manager Skills Assessment
         </h2>
 
         {assessment ? (
@@ -698,14 +707,14 @@ export default function CompanyDetailPage() {
         ) : (
           <div className="bg-white rounded-xl border border-navy/10 shadow-[0px_2px_20px_rgba(0,0,0,0.06)] p-8 text-center">
             <p className="text-navy/40 mb-4">
-              No ELITE5 assessment deployed for this company.
+              No assessment deployed for this company.
             </p>
             <button
               onClick={handleDeployAssessment}
               disabled={creatingAssessment}
               className="bg-blue text-white text-sm font-semibold px-6 py-2 rounded-md hover:bg-blue/90 disabled:opacity-50"
             >
-              {creatingAssessment ? "Deploying..." : "Deploy ELITE5 Assessment"}
+              {creatingAssessment ? "Deploying..." : "Deploy Assessment"}
             </button>
           </div>
         )}

@@ -36,16 +36,23 @@ export default function AdminLogin() {
     <main className="flex-1 flex items-center justify-center px-4 bg-navy min-h-screen">
       <div className="max-w-sm w-full">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">LeadShift</h1>
-          <p className="text-white/50 mt-2 text-sm">Admin Dashboard</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/leadshift-logo-white.svg"
+            alt="LeadShift"
+            className="h-8 mx-auto mb-4 opacity-90"
+          />
+          <p className="text-white/40 text-xs uppercase tracking-widest">
+            Admin Dashboard
+          </p>
         </div>
 
         <form
           onSubmit={handleLogin}
-          className="bg-white rounded-md p-8 shadow-[0px_2px_20px_rgba(0,0,0,0.15)] space-y-5"
+          className="bg-white rounded-xl p-8 shadow-[0px_4px_30px_rgba(0,0,0,0.2)] space-y-5"
         >
           <div>
-            <label className="block text-sm font-semibold text-navy mb-1">
+            <label className="block text-xs font-semibold text-navy/60 uppercase tracking-wide mb-1.5">
               Email
             </label>
             <input
@@ -53,13 +60,13 @@ export default function AdminLogin() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 rounded-md border border-navy/20 text-navy focus:outline-none focus:ring-2 focus:ring-blue focus:border-transparent"
+              className="w-full px-4 py-3 rounded-md border border-navy/15 text-navy bg-navy/[0.02] focus:outline-none focus:ring-2 focus:ring-blue focus:border-transparent transition-colors"
               placeholder="you@leadshift.com"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-navy mb-1">
+            <label className="block text-xs font-semibold text-navy/60 uppercase tracking-wide mb-1.5">
               Password
             </label>
             <input
@@ -67,7 +74,7 @@ export default function AdminLogin() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-md border border-navy/20 text-navy focus:outline-none focus:ring-2 focus:ring-blue focus:border-transparent"
+              className="w-full px-4 py-3 rounded-md border border-navy/15 text-navy bg-navy/[0.02] focus:outline-none focus:ring-2 focus:ring-blue focus:border-transparent transition-colors"
               placeholder="••••••••"
             />
           </div>
@@ -79,7 +86,7 @@ export default function AdminLogin() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue text-white font-semibold py-3 rounded-md hover:bg-blue/90 transition-colors disabled:opacity-50"
+            className="w-full bg-navy text-white font-semibold py-3 rounded-md hover:bg-navy/90 active:bg-navy transition-all disabled:opacity-50"
           >
             {loading ? "Signing in..." : "Sign In"}
           </button>

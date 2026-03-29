@@ -41,6 +41,7 @@ export default function AdminAssessmentDetail() {
   const [generatingOrgReport, setGeneratingOrgReport] = useState(false);
   const [orgReport, setOrgReport] = useState<OrgReportContent | null>(null);
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -160,10 +161,18 @@ export default function AdminAssessmentDetail() {
         </div>
         <div className="flex gap-3">
           <button
-            onClick={() => navigator.clipboard.writeText(assessmentLink)}
-            className="text-sm text-blue font-medium hover:text-blue/80 border border-blue/20 px-4 py-2 rounded-md"
+            onClick={() => {
+              navigator.clipboard.writeText(assessmentLink);
+              setLinkCopied(true);
+              setTimeout(() => setLinkCopied(false), 2000);
+            }}
+            className={`text-sm font-medium px-4 py-2 rounded-md border transition-all ${
+              linkCopied
+                ? "bg-blue text-white border-blue"
+                : "text-blue border-blue/20 hover:bg-blue/5 hover:border-blue/40"
+            }`}
           >
-            Copy Assessment Link
+            {linkCopied ? "Copied!" : "Copy Assessment Link"}
           </button>
           {completedSessions.length >= 2 && (
             <button

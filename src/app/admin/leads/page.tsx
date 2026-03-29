@@ -134,7 +134,7 @@ export default function LeadsPage() {
               </tr>
             ) : (
               leads.map((lead) => (
-                <tr key={lead.id} className="border-b border-navy/5">
+                <tr key={lead.id} className="border-b border-navy/5 hover:bg-navy/[0.03] transition-colors">
                   <td className="p-4">
                     <div className="font-semibold text-navy text-sm">
                       {lead.surveys?.respondent_name}

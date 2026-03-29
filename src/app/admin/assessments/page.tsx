@@ -80,7 +80,7 @@ export default function AdminAssessments() {
             Manager Assessments
           </h1>
           <p className="text-sm text-navy/50 mt-1">
-            ELITE5 assessments deployed to client organizations
+            Assessments deployed to client organizations
           </p>
         </div>
         <button
@@ -193,12 +193,15 @@ export default function AdminAssessments() {
                   </td>
                   <td className="px-6 py-4">
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
                         navigator.clipboard.writeText(
                           `${baseUrl}/assess/${a.slug}`
                         );
+                        const btn = e.currentTarget;
+                        btn.textContent = "Copied!";
+                        setTimeout(() => { btn.textContent = "Copy Link"; }, 2000);
                       }}
-                      className="text-xs text-blue hover:text-blue/80 font-medium"
+                      className="text-xs text-blue hover:text-blue/80 font-medium px-2 py-1 rounded hover:bg-blue/5 transition-colors"
                     >
                       Copy Link
                     </button>

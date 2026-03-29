@@ -27,3 +27,45 @@ body {
   color: var(--foreground);
   font-family: var(--font-raleway), Arial, Helvetica, sans-serif;
 }
+
+/* Global interaction styles */
+button,
+[role="button"],
+a,
+select,
+input[type="submit"],
+input[type="button"],
+.cursor-pointer {
+  cursor: pointer;
+}
+
+button:disabled,
+[disabled] {
+  cursor: not-allowed;
+}
+
+/* Click feedback: subtle scale-down on press for all interactive elements */
+button:not(:disabled):active,
+a:active,
+[role="button"]:active {
+  transform: scale(0.97);
+}
+
+/* Smooth transitions on all buttons */
+button {
+  transition: all 0.15s ease;
+}
+
+/* Clickable table rows */
+tr.cursor-pointer:active {
+  background: rgba(16, 29, 81, 0.06);
+}
+
+/* Focus rings for keyboard navigation */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+}
